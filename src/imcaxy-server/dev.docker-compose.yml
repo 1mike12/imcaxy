@@ -1,0 +1,78 @@
+version: "3.8"
+
+services:
+  dev-imcaxy-nginx:
+    container_name: Dev.Imcaxy.Nginx
+    image: nginx:1.18.0-alpine
+    ports:
+      - 80:80
+    volumes:
+      - ./config/nginx:/etc/nginx
+    networks:
+      - dev-imcaxy-internal
+    depends_on:
+      - dev-imcaxy-server
+      - dev-imcaxy-minio
+
+  dev-imcaxy-server:
+    container_name: Dev.Imcaxy.Server
+    build:
+      context: ./src
+      dockerfile: ./dev.dockerfile
+    env_file: ./config/env/Imcaxy.Server.env
+    volumes:
+      - dev-imcaxy-server-build:/go/src/bin
+      - ./src:/go/src/app
+    networks:
+      - dev-imcaxy-internal
+    depends_on:
+      - dev-imcaxy-mongo
+      - dev-imcaxy-minio
+      - dev-imcaxy-imaginary
+
+  dev-imcaxy-imaginary:
+    container_name: Dev.Imcaxy.Imaginary
+    image: h2non/imaginary
+    env_file: ./config/env/Imcaxy.Imaginary.env
+    command: -enable-url-source
+    networks:
+      - dev-imcaxy-internal
+
+  dev-imcaxy-mongo:
+    container_name: Dev.Imcaxy.Mongo
+    image: mongo
+    env_file: ./config/env/Imcaxy.Mongo.env
+    ports:
+      # allow to connect using mongo compass
+      - 27017:27017
+    networks:
+      - dev-imcaxy-internal
+    volumes:
+      - dev-imcaxy-mongo-data:/data/db
+      - dev-imcaxy-mongo-config:/data/configdb
+
+  dev-imcaxy-minio:
+    container_name: Dev.Imcaxy.Minio
+    image: minio/minio
+    env_file: ./config/env/Imcaxy.Minio.env
+    command: server /data
+    ports:
+      - 9000:9000
+    networks:
+      - dev-imcaxy-internal
+    volumes:
+      - dev-imcaxy-minio-data:/data
+
+volumes:
+  dev-imcaxy-server-build:
+    name: Dev.Imcaxy.Server.Build
+  dev-imcaxy-mongo-data:
+    name: Dev.Imcaxy.Mongo.Data
+  dev-imcaxy-mongo-config:
+    name: Dev.Imcaxy.Mongo.Config
+  dev-imcaxy-minio-data:
+    name: Dev.Imcaxy.Minio.Data
+
+networks:
+  dev-imcaxy-internal:
+    name: Dev.Imcaxy.Internal
