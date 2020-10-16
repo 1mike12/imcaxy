@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -19,6 +20,10 @@ func main() {
 	})
 
 	http.Handle("/status", promhttp.Handler())
+
+	addStartupInfo(time.Now())
+	uploadExampleFileToMinio()
+	cropExampleImageAndUploadToMinio()
 
 	fmt.Println("Imcaxy server is listening on :80 port")
 
