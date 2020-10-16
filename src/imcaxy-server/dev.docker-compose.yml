@@ -23,6 +23,7 @@ services:
     volumes:
       - dev-imcaxy-server-build:/go/src/bin
       - ./src:/go/src/app
+      - ./test/data:/data
     networks:
       - dev-imcaxy-internal
     depends_on:
@@ -35,6 +36,8 @@ services:
     image: h2non/imaginary
     env_file: ./config/env/Imcaxy.Imaginary.env
     command: -enable-url-source
+    volumes:
+      - ./test/data:/data:ro
     networks:
       - dev-imcaxy-internal
 
