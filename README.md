@@ -17,3 +17,7 @@ Expected functionality:
   - [ ] how frequently is selected resource used
   - [ ] last time when was resource was used
 - [ ] from time to time scans for unknown cached data and unknown database entries
+- [ ] two working modes:
+  - [ ] imcaxy and imaginary have access to project files, does not need to send images to imaginary worker because imaginary already has own copy of files
+  - [ ] imcaxy has access to project files and imaginary worker does not, imcaxy sends images to imaginary over http
+- [ ] currently processed files registry with process parameters, if file we want to optimize is already processing (and process parameters are the same) it should wait for end of optimization process and get the request from minio server instead of sending two or more same requests to imaginary worker
