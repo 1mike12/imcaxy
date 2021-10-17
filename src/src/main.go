@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"imcaxy/cache"
 	"net/http"
 	"time"
 
@@ -16,16 +17,13 @@ func main() {
 	})
 
 	http.HandleFunc("/proxy", func(rw http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(rw, "Requested proxied image parameters are: %s", r.URL.Query().Encode())
+		fmt.Fprintf(rw, "Requested proxied image parameters are: %s", r.URL.Query())
 	})
 
 	http.Handle("/status", promhttp.Handler())
 
 	addStartupInfo(time.Now())
-	uploadExampleFileToMinio()
-	cropExampleImageAndUploadToMinio()
-
-	fmt.Println("Imcaxy server is listening on :80 port")
+	cache.TryAddingAndFinding()
 
 	panic(http.ListenAndServe(":80", nil))
 }

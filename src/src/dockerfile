@@ -1,0 +1,17 @@
+FROM golang:1.15.2 AS base
+
+WORKDIR /go/src/app
+
+FROM base AS dev
+
+RUN go get github.com/githubnemo/CompileDaemon
+CMD ["CompileDaemon", "-build", "go build -o /go/src/bin/app", "-command", "/go/src/bin/app", "-color"]
+
+FROM base AS prod
+
+COPY . .
+
+RUN go get -d -v ./...
+RUN go install -v ./...
+
+# TODO: add cmd
