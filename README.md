@@ -6,7 +6,6 @@ Expected functionality:
 
 - [ ] simple proxy for imaginary service
 - [ ] cache imaginary results in minio block storage, save cache info inside mongo database
-- [ ] scan for changes in files, if some file is changed, discard all cached responses of this file
 - [ ] if file is unavailable (deleted), discard all cached responses of this file
 - [ ] collects statistics about resources usage, including:
   - [ ] how frequently is selected resource used
@@ -17,12 +16,14 @@ Expected functionality:
 - [ ] allows to send `revalidate` files api request, with optional file URL parameter that was changed
 
 Project parts:
+
 - `proxy` - proxies all traffic from client to imaginary service and uses `cache` to get or add new resources to cache
 - `cache` - caches all resources using `mongo` database and `minio` block storage
   - `monitoring` - monitors usage of resources, imaginary response times
   - `integration` - cares about `mongo` and `minio` integration, and also about handling `revalidate` api requests, automatically scans for remote file changes and more
 
 Proposed way to split things:
+
 - `proxy`
   - `handlers.go` - will contain all proxy http handlers
   - `validate.go` - will validate incoming requests
@@ -36,5 +37,5 @@ Proposed way to split things:
   - `usage.go` - will handle usage statistics
   - `response.go` - will handle response times
 - `cache/integration`
-  
-  
+- można używać jednego imcaxy pod wiele domen (ale raczej domen biznesowych, nie frontendowych, czyli jedna domena będzie taka a druga inna)
+- do tego cli które bierze specjalny kod dostępu z env i łączy się po http z serwerem imcaxy i może usuwać z cache wybrane pliki
