@@ -7,7 +7,8 @@ import (
 
 	. "github.com/franela/goblin"
 	"github.com/golang/mock/gomock"
-	mock_hub "github.com/thebartekbanach/imcaxy/pkg/hub/mocks"
+	mock_datahubstorage "github.com/thebartekbanach/imcaxy/pkg/hub/storage/mocks"
+	mock_globals "github.com/thebartekbanach/imcaxy/test/mocks"
 )
 
 func TestDataStreamInput(t *testing.T) {
@@ -19,7 +20,7 @@ func TestDataStreamInput(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			dataToWrite := []byte{0x1, 0x2, 0x3}
-			mockWriter := mock_hub.NewMockWriter(mockCtrl)
+			mockWriter := mock_datahubstorage.NewMockWriter(mockCtrl)
 			mockWriter.EXPECT().Write("test", dataToWrite).Return(3, nil).Times(1)
 
 			stream := newDataStreamInput("test", mockWriter)
@@ -35,7 +36,7 @@ func TestDataStreamInput(t *testing.T) {
 
 			dataToWrite := []byte{0x1, 0x2, 0x3}
 			testError := errors.New("test error")
-			mockWriter := mock_hub.NewMockWriter(mockCtrl)
+			mockWriter := mock_datahubstorage.NewMockWriter(mockCtrl)
 			mockWriter.EXPECT().Write("test", dataToWrite).Return(0, testError)
 
 			stream := newDataStreamInput("test", mockWriter)
@@ -48,7 +49,7 @@ func TestDataStreamInput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockWriter := mock_hub.NewMockWriter(mockCtrl)
+			mockWriter := mock_datahubstorage.NewMockWriter(mockCtrl)
 			mockWriter.EXPECT().Close("test", nil).Times(1)
 
 			stream := newDataStreamInput("test", mockWriter)
@@ -60,7 +61,7 @@ func TestDataStreamInput(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			testError := errors.New("test error")
-			mockWriter := mock_hub.NewMockWriter(mockCtrl)
+			mockWriter := mock_datahubstorage.NewMockWriter(mockCtrl)
 			mockWriter.EXPECT().Close("test", testError).Times(1)
 
 			stream := newDataStreamInput("test", mockWriter)
@@ -72,7 +73,7 @@ func TestDataStreamInput(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			testError := errors.New("test error")
-			mockWriter := mock_hub.NewMockWriter(mockCtrl)
+			mockWriter := mock_datahubstorage.NewMockWriter(mockCtrl)
 			mockWriter.EXPECT().Close("test", nil).Return(testError)
 
 			stream := newDataStreamInput("test", mockWriter)
@@ -85,11 +86,11 @@ func TestDataStreamInput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockWriter := mock_hub.NewMockWriter(mockCtrl)
+			mockWriter := mock_datahubstorage.NewMockWriter(mockCtrl)
 			mockWriter.EXPECT().Write("test", []byte{0x1, 0x2, 0x3}).Return(3, nil).Times(1)
 			mockWriter.EXPECT().Write("test", []byte{0x4, 0x5, 0x6}).Return(3, nil).Times(1)
 
-			mockReader := mock_hub.NewMockReader(mockCtrl)
+			mockReader := mock_globals.NewMockReader(mockCtrl)
 			mockReader.EXPECT().Read(gomock.Any()).DoAndReturn(func(p []byte) (int, error) {
 				n := copy(p, []byte{0x1, 0x2, 0x3})
 				return n, nil
@@ -107,10 +108,10 @@ func TestDataStreamInput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockWriter := mock_hub.NewMockWriter(mockCtrl)
+			mockWriter := mock_datahubstorage.NewMockWriter(mockCtrl)
 			mockWriter.EXPECT().Write("test", []byte{0x1, 0x2, 0x3}).Return(3, nil).Times(1)
 
-			mockReader := mock_hub.NewMockReader(mockCtrl)
+			mockReader := mock_globals.NewMockReader(mockCtrl)
 			mockReader.EXPECT().Read(gomock.Any()).DoAndReturn(func(p []byte) (int, error) {
 				n := copy(p, []byte{0x1, 0x2, 0x3})
 				return n, nil
@@ -130,10 +131,10 @@ func TestDataStreamInput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockWriter := mock_hub.NewMockWriter(mockCtrl)
+			mockWriter := mock_datahubstorage.NewMockWriter(mockCtrl)
 			mockWriter.EXPECT().Write("test", []byte{0x1, 0x2, 0x3}).Return(3, io.ErrUnexpectedEOF).Times(1)
 
-			mockReader := mock_hub.NewMockReader(mockCtrl)
+			mockReader := mock_globals.NewMockReader(mockCtrl)
 			mockReader.EXPECT().Read(gomock.Any()).DoAndReturn(func(p []byte) (int, error) {
 				n := copy(p, []byte{0x1, 0x2, 0x3})
 				return n, nil

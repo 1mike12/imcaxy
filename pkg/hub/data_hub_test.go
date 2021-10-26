@@ -6,11 +6,11 @@ import (
 
 	. "github.com/franela/goblin"
 	"github.com/golang/mock/gomock"
-	mock_hub "github.com/thebartekbanach/imcaxy/pkg/hub/mocks"
 	datahubstorage "github.com/thebartekbanach/imcaxy/pkg/hub/storage"
+	mock_datahubstorage "github.com/thebartekbanach/imcaxy/pkg/hub/storage/mocks"
 )
 
-func newRunningDataHubAndStorage(g *G) (DataHub, *mock_hub.MockStorageAdapter, context.CancelFunc) {
+func newRunningDataHubAndStorage(g *G) (DataHub, *mock_datahubstorage.MockStorageAdapter, context.CancelFunc) {
 	mockCtrl := gomock.NewController(g)
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -19,7 +19,7 @@ func newRunningDataHubAndStorage(g *G) (DataHub, *mock_hub.MockStorageAdapter, c
 		mockCtrl.Finish()
 	}
 
-	mockStorage := mock_hub.NewMockStorageAdapter(mockCtrl)
+	mockStorage := mock_datahubstorage.NewMockStorageAdapter(mockCtrl)
 	mockStorage.EXPECT().StartMonitors(gomock.Any())
 
 	hub := NewDataHub(mockStorage)

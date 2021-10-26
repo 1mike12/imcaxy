@@ -8,7 +8,7 @@ import (
 
 	. "github.com/franela/goblin"
 	"github.com/golang/mock/gomock"
-	mock_hub "github.com/thebartekbanach/imcaxy/pkg/hub/mocks"
+	mock_datahubstorage "github.com/thebartekbanach/imcaxy/pkg/hub/storage/mocks"
 )
 
 type readResult struct {
@@ -24,7 +24,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().ReadAt(gomock.Any(), int64(0)).Return(3, nil).Times(1)
 			mockReader.EXPECT().ReadAt(gomock.Any(), int64(3)).Return(3, io.EOF).Times(1)
 			expectedResults := []readResult{
@@ -46,7 +46,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().ReadAt(gomock.Any(), int64(3)).Return(3, io.EOF).Times(1)
 
 			stream := newDataStreamOutput(mockReader)
@@ -59,7 +59,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().ReadAt(gomock.Any(), int64(3)).Return(3, io.EOF).Times(1)
 
 			stream := newDataStreamOutput(mockReader)
@@ -73,7 +73,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 
 			stream := newDataStreamOutput(mockReader)
 			_, err := stream.Seek(3, io.SeekEnd)
@@ -85,7 +85,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 
 			stream := newDataStreamOutput(mockReader)
 			_, err := stream.Seek(-1, io.SeekStart)
@@ -97,7 +97,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Times(1)
 
 			stream := newDataStreamOutput(mockReader)
@@ -108,7 +108,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Return(nil)
 
 			stream := newDataStreamOutput(mockReader)
@@ -122,7 +122,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Return(nil)
 
 			stream := newDataStreamOutput(mockReader)
@@ -136,7 +136,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Return(nil)
 
 			stream := newDataStreamOutput(mockReader)
@@ -150,7 +150,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Return(nil)
 
 			stream := newDataStreamOutput(mockReader)
@@ -165,7 +165,7 @@ func TestDataStreamOutput(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			closeError := errors.New("some close error")
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Return(closeError).Times(1)
 
 			stream := newDataStreamOutput(mockReader)
@@ -178,7 +178,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().ReadAt(gomock.Any(), int64(3)).Return(3, nil).Times(1)
 
 			stream := newDataStreamOutput(mockReader)
@@ -191,7 +191,7 @@ func TestDataStreamOutput(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			data := []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 
 			mockReader.EXPECT().ReadAt(gomock.Any(), int64(0)).DoAndReturn(func(p []byte, off int64) (int, error) {
 				n := copy(p, data[off:3])
@@ -216,7 +216,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockCtrl := gomock.NewController(g)
 			defer mockCtrl.Finish()
 
-			mockReader := mock_hub.NewMockStreamReader(mockCtrl)
+			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Return(nil)
 
 			stream := newDataStreamOutput(mockReader)
