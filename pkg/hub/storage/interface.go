@@ -1,6 +1,9 @@
 package datahubstorage
 
-import "io"
+import (
+	"context"
+	"io"
+)
 
 type (
 	StreamReader interface {
@@ -21,5 +24,8 @@ type (
 	StorageAdapter interface {
 		Writer
 		Reader
+
+		// start background tasks
+		StartMonitors(ctx context.Context)
 	}
 )
