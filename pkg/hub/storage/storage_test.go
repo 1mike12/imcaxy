@@ -169,17 +169,6 @@ func TestStorage(t *testing.T) {
 			g.Assert(err).Equal(datahubstorage.ErrUnknownStream)
 		})
 
-		g.Xit("Should return error if trying to write closed but not disposed stream", func() {
-			_, cancel, storage := newRunningStorage()
-			defer cancel()
-
-			storage.Create("test")
-			storage.Close("test", nil)
-			_, err := storage.Write("test", []byte{0x0})
-
-			g.Assert(err).Equal(datahubstorage.ErrStreamAlreadyClosed)
-		})
-
 		g.It("Should close stream and forward given error", func() {
 			ctx, cancel, storage := newRunningStorage()
 			defer cancel()
