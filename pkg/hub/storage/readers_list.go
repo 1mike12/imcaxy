@@ -15,7 +15,7 @@ func newReadersList() readersList {
 	return readersList{
 		sync.Mutex{},
 		make(map[string]int),
-		make(chan string, 128),
+		make(chan string),
 	}
 }
 
