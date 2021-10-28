@@ -11,11 +11,11 @@ import (
 
 const DATA_HUB_FETCHER_STREAM_NAMES_TEMPLATE = "%s::FILE_FETCHER"
 
-type HttpGetFunc func(url string) (resp *http.Response, err error)
+type httpGetFunc func(url string) (resp *http.Response, err error)
 
 type DataHubFetcher struct {
 	dataHub hub.DataHub
-	getter  HttpGetFunc
+	getter  httpGetFunc
 }
 
 var _ Fetcher = (*DataHubFetcher)(nil)

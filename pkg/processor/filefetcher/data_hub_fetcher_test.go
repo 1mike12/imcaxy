@@ -22,7 +22,7 @@ func (body *httpResponseBody) Close() error {
 	return nil
 }
 
-func fetchGetterFuncFactoryWithGetterCallback(reader io.Reader, responseStatusCode int, err error, onGetterCall func()) HttpGetFunc {
+func fetchGetterFuncFactoryWithGetterCallback(reader io.Reader, responseStatusCode int, err error, onGetterCall func()) httpGetFunc {
 	return func(url string) (*http.Response, error) {
 		onGetterCall()
 
@@ -40,7 +40,7 @@ func fetchGetterFuncFactoryWithGetterCallback(reader io.Reader, responseStatusCo
 	}
 }
 
-func testDataFetchFuncFactoryWithGetterCallback(responseStatusCode int, err error, onGetterCall func()) (HttpGetFunc, []byte) {
+func testDataFetchFuncFactoryWithGetterCallback(responseStatusCode int, err error, onGetterCall func()) (httpGetFunc, []byte) {
 	data := []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}
 	reader := bytes.NewReader(data)
 
@@ -49,7 +49,7 @@ func testDataFetchFuncFactoryWithGetterCallback(responseStatusCode int, err erro
 	return get, data
 }
 
-func testDataFetchFuncFactory(responseStatusCode int, err error) (HttpGetFunc, []byte) {
+func testDataFetchFuncFactory(responseStatusCode int, err error) (httpGetFunc, []byte) {
 	return testDataFetchFuncFactoryWithGetterCallback(responseStatusCode, err, func() {})
 }
 
