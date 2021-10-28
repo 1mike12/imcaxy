@@ -32,7 +32,7 @@ func TestDataStreamOutput(t *testing.T) {
 				{3, io.EOF},
 			}
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			for _, expected := range expectedResults {
 				data := make([]byte, 3)
 				n, err := stream.Read(data)
@@ -49,7 +49,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().ReadAt(gomock.Any(), int64(3)).Return(3, io.EOF).Times(1)
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			stream.Seek(3, io.SeekStart)
 			data := make([]byte, 3)
 			stream.Read(data)
@@ -62,7 +62,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().ReadAt(gomock.Any(), int64(3)).Return(3, io.EOF).Times(1)
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			stream.Seek(1, io.SeekStart)
 			stream.Seek(2, io.SeekCurrent)
 			data := make([]byte, 3)
@@ -75,7 +75,7 @@ func TestDataStreamOutput(t *testing.T) {
 
 			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			_, err := stream.Seek(3, io.SeekEnd)
 
 			g.Assert(err).Equal(ErrSeekEndUnsupported)
@@ -87,7 +87,7 @@ func TestDataStreamOutput(t *testing.T) {
 
 			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			_, err := stream.Seek(-1, io.SeekStart)
 
 			g.Assert(err).Equal(ErrOffsetOutOfRange)
@@ -100,7 +100,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Times(1)
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			stream.Close()
 		})
 
@@ -111,7 +111,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Return(nil)
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			stream.Close()
 			err := stream.Close()
 
@@ -125,7 +125,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Return(nil)
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			stream.Close()
 			_, err := stream.Read([]byte{})
 
@@ -139,7 +139,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Return(nil)
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			stream.Close()
 			_, err := stream.ReadAt([]byte{}, 0)
 
@@ -153,7 +153,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Return(nil)
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			stream.Close()
 			_, err := stream.Seek(0, io.SeekStart)
 
@@ -168,7 +168,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Return(closeError).Times(1)
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			err := stream.Close()
 
 			g.Assert(err).Equal(closeError)
@@ -181,7 +181,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().ReadAt(gomock.Any(), int64(3)).Return(3, nil).Times(1)
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			data := make([]byte, 3)
 			stream.ReadAt(data, 3)
 		})
@@ -203,7 +203,7 @@ func TestDataStreamOutput(t *testing.T) {
 				return n, io.EOF
 			}).Times(1)
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			var result bytes.Buffer
 			n, err := stream.WriteTo(&result)
 
@@ -219,7 +219,7 @@ func TestDataStreamOutput(t *testing.T) {
 			mockReader := mock_datahubstorage.NewMockStreamReader(mockCtrl)
 			mockReader.EXPECT().Close().Return(nil)
 
-			stream := newDataStreamOutput(mockReader)
+			stream := NewDataStreamOutput(mockReader)
 			stream.Close()
 			_, err := stream.Read([]byte{})
 

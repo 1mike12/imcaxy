@@ -17,7 +17,7 @@ type dataStreamOutput struct {
 
 var _ DataStreamOutput = (*dataStreamOutput)(nil)
 
-func newDataStreamOutput(reader datahubstorage.StreamReader) dataStreamOutput {
+func NewDataStreamOutput(reader datahubstorage.StreamReader) dataStreamOutput {
 	return dataStreamOutput{
 		reader,
 		0,

@@ -64,6 +64,6 @@ func (hub *dataHub) getStreamOutput(streamID string) (DataStreamOutput, error) {
 		return nil, err
 	}
 
-	streamOutput := newDataStreamOutput(streamReader)
+	streamOutput := NewDataStreamOutput(streamReader)
 	return &streamOutput, nil
 }
