@@ -39,13 +39,13 @@ func (proc *Processor) ParseRequest(requestPath string) (processor.ParsedRequest
 	}
 
 	source := info.Query().Get("url")
-	checksum := proc.generateChecksum(info.Path, source, info.Query())
+	signature := proc.generateSignature(info.Path, source, info.Query())
 
 	request := processor.ParsedRequest{
 		ProcessorEndpoint: info.Path,
 		SourceImageURL:    source,
 		ProcessingParams:  info.Query(),
-		UniqueChecksum:    checksum,
+		Signature:         signature,
 	}
 
 	return request, nil
@@ -102,8 +102,8 @@ func (proc *Processor) buildRequest(request processor.ParsedRequest) *http.Reque
 	return &req
 }
 
-func (proc *Processor) generateChecksum(path, source string, params map[string][]string) string {
-	checksum := "|" + path + "|" + source + "|"
+func (proc *Processor) generateSignature(path, source string, params map[string][]string) string {
+	signature := "|" + path + "|" + source + "|"
 	for _, key := range proc.getSortedMapKeys(params) {
 		currentValue := ""
 		for _, value := range params[key] {
@@ -111,10 +111,10 @@ func (proc *Processor) generateChecksum(path, source string, params map[string][
 		}
 
 		currentValue = strings.TrimRight(currentValue, ",")
-		checksum += key + "=" + currentValue + "|"
+		signature += key + "=" + currentValue + "|"
 	}
 
-	return checksum
+	return signature
 }
 
 func (proc *Processor) getSortedMapKeys(mapToSort map[string][]string) []string {

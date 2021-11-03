@@ -79,7 +79,7 @@ func TestImaginaryProcessor(t *testing.T) {
 				firstResult, _ := processor.ParseRequest("/crop?abc=1&def=2&url=http://google.com/image.jpg")
 				secondResult, _ := processor.ParseRequest("/crop?abc=1&url=http://google.com/image.jpg&def=2")
 
-				g.Assert(firstResult.UniqueChecksum).Equal(secondResult.UniqueChecksum)
+				g.Assert(firstResult.Signature).Equal(secondResult.Signature)
 			})
 
 			g.It("Should return error if sourceImageURL not found in request", func() {
@@ -110,7 +110,7 @@ func TestImaginaryProcessor(t *testing.T) {
 				testData := []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}
 				inputStream := mock_hub.NewMockTestingDataStreamInput(g, [][]byte{testData}, nil, nil)
 				parsedRequest := processor.ParsedRequest{
-					UniqueChecksum:    "abc",
+					Signature:         "abc",
 					SourceImageURL:    "http://google.com/image.jpg",
 					ProcessorEndpoint: "/crop",
 					ProcessingParams: map[string][]string{
@@ -135,7 +135,7 @@ func TestImaginaryProcessor(t *testing.T) {
 				testData := []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}
 				inputStream := mock_hub.NewMockTestingDataStreamInput(g, [][]byte{testData}, nil, nil)
 				parsedRequest := processor.ParsedRequest{
-					UniqueChecksum:    "abc",
+					Signature:         "abc",
 					SourceImageURL:    "http://google.com/image.jpg",
 					ProcessorEndpoint: "/crop",
 					ProcessingParams: map[string][]string{
@@ -157,7 +157,7 @@ func TestImaginaryProcessor(t *testing.T) {
 				testData := []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}
 				inputStream := mock_hub.NewMockTestingDataStreamInput(g, [][]byte{testData}, nil, nil)
 				parsedRequest := processor.ParsedRequest{
-					UniqueChecksum:    "abc",
+					Signature:         "abc",
 					SourceImageURL:    "http://google.com/image.jpg",
 					ProcessorEndpoint: "/crop",
 					ProcessingParams: map[string][]string{
@@ -178,7 +178,7 @@ func TestImaginaryProcessor(t *testing.T) {
 				testData := []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}
 				inputStream := mock_hub.NewMockTestingDataStreamInput(g, [][]byte{testData}, nil, nil)
 				parsedRequest := processor.ParsedRequest{
-					UniqueChecksum:    "abc",
+					Signature:         "abc",
 					SourceImageURL:    "http://google.com/image.jpg",
 					ProcessorEndpoint: "/crop",
 					ProcessingParams: map[string][]string{
@@ -199,7 +199,7 @@ func TestImaginaryProcessor(t *testing.T) {
 				testData := []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}
 				inputStream := mock_hub.NewMockTestingDataStreamInput(g, nil, nil, nil)
 				parsedRequest := processor.ParsedRequest{
-					UniqueChecksum:    "abc",
+					Signature:         "abc",
 					SourceImageURL:    "http://google.com/image.jpg",
 					ProcessorEndpoint: "/crop",
 					ProcessingParams: map[string][]string{

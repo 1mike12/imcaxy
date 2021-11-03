@@ -3,7 +3,7 @@ package processor
 import "github.com/thebartekbanach/imcaxy/pkg/hub"
 
 type ParsedRequest struct {
-	UniqueChecksum    string
+	Signature         string
 	SourceImageURL    string
 	ProcessorEndpoint string
 	ProcessingParams  map[string][]string
