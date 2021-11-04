@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+  integration-tests-imcaxy-server:
+    container_name: IntegrationTests.Imcaxy.Server
+    build:
+      context: ./
+      dockerfile: ./dockerfile
+      target: integration-tests
+    env_file: ./config/env/IntegrationTests.Imcaxy.Server.env
+    volumes:
+      - ./:/go/src/app
+    networks:
+      - integration-tests-imcaxy-internal
+    depends_on:
+      - integration-tests-imcaxy-mongo
+      - integration-tests-imcaxy-minio
+      - integration-tests-imcaxy-imaginary
+
+  integration-tests-imcaxy-imaginary:
+    container_name: IntegrationTests.Imcaxy.Imaginary
+    image: h2non/imaginary
+    env_file: ./config/env/IntegrationTests.Imcaxy.Imaginary.env
+    command: -enable-url-source -mount /data
+    volumes:
+      - ./test/data:/data:ro
+    networks:
+      - integration-tests-imcaxy-internal
+
+  integration-tests-imcaxy-mongo:
+    container_name: IntegrationTests.Imcaxy.Mongo
+    image: mongo
+    env_file: ./config/env/IntegrationTests.Imcaxy.Mongo.env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=test
+      - MONGO_INITDB_ROOT_PASSWORD=test
+    ports:
+      # allow to connect using mongo compass
+      - 27017:27017
+    networks:
+      - integration-tests-imcaxy-internal
+    volumes:
+      - integration-tests-imcaxy-mongo-data:/data/db
+      - integration-tests-imcaxy-mongo-config:/data/configdb
+
+  integration-tests-imcaxy-minio:
+    container_name: IntegrationTests.Imcaxy.Minio
+    image: minio/minio
+    env_file: ./config/env/IntegrationTests.Imcaxy.Minio.env
+    command: server /data
+    ports:
+      # allow to access minio admin that can't be proxied under sub-path
+      - 9000:9000
+    networks:
+      - integration-tests-imcaxy-internal
+    volumes:
+      - integration-tests-imcaxy-minio-data:/data
+
+volumes:
+  integration-tests-imcaxy-mongo-data:
+    name: IntegrationTests.Imcaxy.Mongo.Data
+  integration-tests-imcaxy-mongo-config:
+    name: IntegrationTests.Imcaxy.Mongo.Config
+  integration-tests-imcaxy-minio-data:
+    name: IntegrationTests.Imcaxy.Minio.Data
+
+networks:
+  integration-tests-imcaxy-internal:
+    name: IntegrationTests.Imcaxy.Internal
