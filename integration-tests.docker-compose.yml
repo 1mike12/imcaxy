@@ -50,6 +50,9 @@ services:
     image: minio/minio
     env_file: ./config/env/IntegrationTests.Imcaxy.Minio.env
     command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ACCESS_KEY=minio
+      - MINIO_SECRET_KEY=minio123
     ports:
       - 9000:9000
       - 9001:9001
