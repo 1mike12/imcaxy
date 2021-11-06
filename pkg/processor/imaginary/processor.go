@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/thebartekbanach/imcaxy/pkg/hub"
@@ -54,23 +55,39 @@ func (proc *Processor) ParseRequest(requestPath string) (processor.ParsedRequest
 func (proc *Processor) ProcessImage(
 	request processor.ParsedRequest,
 	streamInput hub.DataStreamInput,
-) (responseContentType string, err error) {
+) (responseContentType string, responseSize int64, err error) {
 	req := proc.buildRequest(request)
 
 	response, err := proc.makeRequest(req)
 	if err != nil {
-		return "", err
+		return
 	}
 
 	if response.StatusCode != 200 {
 		response.Body.Close()
-		return "", ErrResponseStatusNotOK
+		err = ErrResponseStatusNotOK
+		return
 	}
 
 	contentType, exists := response.Header["Content-Type"]
-	if !exists {
+	if !exists || len(contentType) == 0 {
 		response.Body.Close()
-		return "", ErrUnknownContentType
+		err = ErrUnknownContentType
+		return
+	}
+
+	responseSizeHeader, exists := response.Header["Content-Length"]
+	if !exists || len(responseSizeHeader) == 0 {
+		response.Body.Close()
+		err = ErrUnknownContentLength
+		return
+	}
+
+	responseSizeHeaderValue, err := strconv.Atoi(responseSizeHeader[0])
+	if err != nil || responseSizeHeaderValue <= 0 {
+		response.Body.Close()
+		err = ErrUnknownContentLength
+		return
 	}
 
 	go func() {
@@ -79,7 +96,9 @@ func (proc *Processor) ProcessImage(
 		response.Body.Close()
 	}()
 
-	return contentType[0], nil
+	responseContentType = contentType[0]
+	responseSize = int64(responseSizeHeaderValue)
+	return
 }
 
 func (proc *Processor) buildRequest(request processor.ParsedRequest) *http.Request {
@@ -143,6 +162,7 @@ func (proc *Processor) isOperationSupported(endpoint string) bool {
 var (
 	ErrResponseStatusNotOK   = errors.New("response status not OK")
 	ErrUnknownContentType    = errors.New("unknown response content type")
+	ErrUnknownContentLength  = errors.New("unknown response content length")
 	ErrURLParamNotIncluded   = errors.New("url param not included")
 	ErrOperationNotSupported = errors.New("operation not supported")
 )

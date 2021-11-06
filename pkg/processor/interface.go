@@ -17,6 +17,7 @@ type ProcessingService interface {
 		streamInput hub.DataStreamInput,
 	) (
 		responseContentType string,
+		responseSize int64,
 		err error,
 	)
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strconv"
 	"testing"
 
 	"github.com/franela/goblin"
@@ -29,7 +30,14 @@ func (body *httpResponseBody) Close() error {
 	return nil
 }
 
-func testReqFunc(statusCode int, response []byte, callError, responseBodyError error, requestAssert func(req *http.Request)) httpRequestFunc {
+func testReqFunc(
+	statusCode int,
+	response []byte,
+	callError, responseBodyError error,
+	includeContentType bool,
+	responseSize func(response []byte) string,
+	requestAssert func(req *http.Request),
+) httpRequestFunc {
 	return func(req *http.Request) (*http.Response, error) {
 		requestAssert(req)
 
@@ -40,17 +48,36 @@ func testReqFunc(statusCode int, response []byte, callError, responseBodyError e
 		reader := bytes.NewReader(response)
 		body := httpResponseBody{reader, responseBodyError}
 
+		headers := http.Header{}
+
+		responseSizeHeader := responseSize(response)
+		if responseSizeHeader != "" {
+			headers.Add("Content-Length", responseSizeHeader)
+		}
+
+		if includeContentType {
+			headers.Add("Content-Type", "image/png")
+		}
+
 		return &http.Response{
 			StatusCode: statusCode,
 			Body:       &body,
-			Header: http.Header{
-				"Content-Type": []string{"image/png"},
-			},
+			Header:     headers,
 		}, nil
 	}
 }
 
 func noAssertions(req *http.Request) {}
+
+func normalResponseSize(response []byte) string {
+	return strconv.Itoa(len(response))
+}
+
+func stringResponseSize(responseString string) func(response []byte) string {
+	return func(_ []byte) string {
+		return responseString
+	}
+}
 
 func TestImaginaryProcessor(t *testing.T) {
 	g := goblin.Goblin(t)
@@ -118,14 +145,14 @@ func TestImaginaryProcessor(t *testing.T) {
 						"height": {"500"},
 					},
 				}
-				requestMaker := testReqFunc(200, testData, nil, nil, func(req *http.Request) {
+				requestMaker := testReqFunc(200, testData, nil, nil, true, normalResponseSize, func(req *http.Request) {
 					g.Assert(req.Method).Equal(http.MethodGet)
 					g.Assert(req.URL.Host).Equal("http://localhost:3000")
 					g.Assert(req.URL.Path).Equal("/crop")
 				})
 
 				proc := Processor{config, requestMaker}
-				contentType, _ := proc.ProcessImage(parsedRequest, &inputStream)
+				contentType, _, _ := proc.ProcessImage(parsedRequest, &inputStream)
 
 				g.Assert(contentType).Equal("image/png")
 			})
@@ -143,7 +170,7 @@ func TestImaginaryProcessor(t *testing.T) {
 						"height": {"500"},
 					},
 				}
-				requestMaker := testReqFunc(200, testData, nil, nil, noAssertions)
+				requestMaker := testReqFunc(200, testData, nil, nil, true, normalResponseSize, noAssertions)
 
 				proc := Processor{config, requestMaker}
 				proc.ProcessImage(parsedRequest, &inputStream)
@@ -165,10 +192,10 @@ func TestImaginaryProcessor(t *testing.T) {
 						"height": {"500"},
 					},
 				}
-				requestMaker := testReqFunc(200, nil, io.ErrUnexpectedEOF, nil, noAssertions)
+				requestMaker := testReqFunc(200, nil, io.ErrUnexpectedEOF, nil, true, normalResponseSize, noAssertions)
 
 				proc := Processor{config, requestMaker}
-				_, err := proc.ProcessImage(parsedRequest, &inputStream)
+				_, _, err := proc.ProcessImage(parsedRequest, &inputStream)
 
 				g.Assert(err).Equal(io.ErrUnexpectedEOF)
 			})
@@ -186,12 +213,96 @@ func TestImaginaryProcessor(t *testing.T) {
 						"height": {"500"},
 					},
 				}
-				requestMaker := testReqFunc(500, testData, nil, nil, noAssertions)
+				requestMaker := testReqFunc(500, testData, nil, nil, true, normalResponseSize, noAssertions)
 
 				proc := Processor{config, requestMaker}
-				_, err := proc.ProcessImage(parsedRequest, &inputStream)
+				_, _, err := proc.ProcessImage(parsedRequest, &inputStream)
 
 				g.Assert(err).Equal(ErrResponseStatusNotOK)
+			})
+
+			g.It("Should return error if imaginary service response does not include Content-Type header", func() {
+				config := Config{ImaginaryServiceURL: "http://localhost:3000"}
+				testData := []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}
+				inputStream := mock_hub.NewMockTestingDataStreamInput(g, [][]byte{testData}, nil, nil)
+				parsedRequest := processor.ParsedRequest{
+					Signature:         "abc",
+					SourceImageURL:    "http://google.com/image.jpg",
+					ProcessorEndpoint: "/crop",
+					ProcessingParams: map[string][]string{
+						"width":  {"500"},
+						"height": {"500"},
+					},
+				}
+				requestMaker := testReqFunc(200, testData, nil, nil, false, normalResponseSize, noAssertions)
+
+				proc := Processor{config, requestMaker}
+				_, _, err := proc.ProcessImage(parsedRequest, &inputStream)
+
+				g.Assert(err).Equal(ErrUnknownContentType)
+			})
+
+			g.It("Should return error if imaginary service response does not include Content-Length header", func() {
+				config := Config{ImaginaryServiceURL: "http://localhost:3000"}
+				testData := []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}
+				inputStream := mock_hub.NewMockTestingDataStreamInput(g, [][]byte{testData}, nil, nil)
+				parsedRequest := processor.ParsedRequest{
+					Signature:         "abc",
+					SourceImageURL:    "http://google.com/image.jpg",
+					ProcessorEndpoint: "/crop",
+					ProcessingParams: map[string][]string{
+						"width":  {"500"},
+						"height": {"500"},
+					},
+				}
+				requestMaker := testReqFunc(200, testData, nil, nil, true, stringResponseSize(""), noAssertions)
+
+				proc := Processor{config, requestMaker}
+				_, _, err := proc.ProcessImage(parsedRequest, &inputStream)
+
+				g.Assert(err).Equal(ErrUnknownContentLength)
+			})
+
+			g.It("Should return error if responses Content-Length header is zero", func() {
+				config := Config{ImaginaryServiceURL: "http://localhost:3000"}
+				testData := []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}
+				inputStream := mock_hub.NewMockTestingDataStreamInput(g, [][]byte{testData}, nil, nil)
+				parsedRequest := processor.ParsedRequest{
+					Signature:         "abc",
+					SourceImageURL:    "http://google.com/image.jpg",
+					ProcessorEndpoint: "/crop",
+					ProcessingParams: map[string][]string{
+						"width":  {"500"},
+						"height": {"500"},
+					},
+				}
+				requestMaker := testReqFunc(200, testData, nil, nil, true, stringResponseSize("0"), noAssertions)
+
+				proc := Processor{config, requestMaker}
+				_, _, err := proc.ProcessImage(parsedRequest, &inputStream)
+
+				g.Assert(err).Equal(ErrUnknownContentLength)
+			})
+
+			g.It("Should return error if responses Content-Length header is not correct number", func() {
+				config := Config{ImaginaryServiceURL: "http://localhost:3000"}
+				testData := []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}
+				inputStream := mock_hub.NewMockTestingDataStreamInput(g, [][]byte{testData}, nil, nil)
+				parsedRequest := processor.ParsedRequest{
+					Signature:         "abc",
+					SourceImageURL:    "http://google.com/image.jpg",
+					ProcessorEndpoint: "/crop",
+					ProcessingParams: map[string][]string{
+						"width":  {"500"},
+						"height": {"500"},
+					},
+				}
+				requestMaker := testReqFunc(200, testData, nil, nil, true, stringResponseSize("incorrect"), noAssertions)
+
+				proc := Processor{config, requestMaker}
+				_, _, err := proc.ProcessImage(parsedRequest, &inputStream)
+
+				g.Assert(err).Equal(ErrUnknownContentLength)
 			})
 
 			g.It("Should close input data stream with error that ocurred while fetching given image", func() {
@@ -207,7 +318,7 @@ func TestImaginaryProcessor(t *testing.T) {
 						"height": {"500"},
 					},
 				}
-				requestMaker := testReqFunc(200, testData, nil, io.ErrUnexpectedEOF, noAssertions)
+				requestMaker := testReqFunc(200, testData, nil, io.ErrUnexpectedEOF, true, normalResponseSize, noAssertions)
 
 				proc := Processor{config, requestMaker}
 				proc.ProcessImage(parsedRequest, &inputStream)
