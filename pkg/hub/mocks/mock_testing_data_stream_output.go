@@ -1,23 +1,27 @@
 package mock_hub
 
 import (
+	"bytes"
 	"time"
 
-	"github.com/franela/goblin"
 	"github.com/thebartekbanach/imcaxy/pkg/hub"
 )
 
 type MockTestingDataStreamOutput struct {
 	hub.DataStreamOutput
 
-	g      *goblin.G
+	t      T
 	reader *mockTestingDataStreamOutputReader
 }
 
 var _ hub.DataStreamOutput = (*MockTestingDataStreamOutput)(nil)
 
+type T interface {
+	Errorf(format string, args ...interface{})
+}
+
 func NewMockTestingDataStreamOutput(
-	g *goblin.G,
+	t T,
 	responses [][]byte,
 	lastReadError error,
 	closeError error,
@@ -27,33 +31,62 @@ func NewMockTestingDataStreamOutput(
 		lastReadError,
 		closeError,
 		make(chan struct{}, 1),
+		false,
 	}
 
 	dataStreamOutput := hub.NewDataStreamOutput(&reader)
 
 	return MockTestingDataStreamOutput{
 		&dataStreamOutput,
-		g, &reader,
+		t, &reader,
+	}
+}
+
+func NewMockTestingDataStreamOutputUsingSingleChunkOfData(
+	t T,
+	data []byte,
+	lastReadError error,
+	closeError error,
+) MockTestingDataStreamOutput {
+	reader := mockTestingDataStreamOutputReader{
+		[][]byte{data},
+		lastReadError,
+		closeError,
+		make(chan struct{}, 1),
+		true,
+	}
+
+	dataStreamOutput := hub.NewDataStreamOutput(&reader)
+
+	return MockTestingDataStreamOutput{
+		&dataStreamOutput,
+		t, &reader,
 	}
 }
 
 func (stream *MockTestingDataStreamOutput) Wait() {
 	select {
 	case <-time.After(time.Second):
-		stream.g.Errorf("MockTestingDataStreamOutput Wait deadline exceeded")
+		stream.t.Errorf("MockTestingDataStreamOutput Wait deadline exceeded")
 	case <-stream.reader.finisher:
 		return
 	}
 }
 
 type mockTestingDataStreamOutputReader struct {
-	responses     [][]byte
-	lastReadError error
-	closeError    error
-	finisher      chan struct{}
+	responses              [][]byte
+	lastReadError          error
+	closeError             error
+	finisher               chan struct{}
+	usingSingleChunkOfData bool
 }
 
 func (reader *mockTestingDataStreamOutputReader) ReadAt(p []byte, off int64) (n int, err error) {
+	if reader.usingSingleChunkOfData {
+		n, err = bytes.NewReader(reader.responses[0]).ReadAt(p, off)
+		return
+	}
+
 	dataSegment := reader.getResponseSegmentAtOffset(off)
 	if dataSegment == nil {
 		return 0, reader.lastReadError
@@ -72,7 +105,7 @@ func (reader *mockTestingDataStreamOutputReader) getResponseSegmentAtOffset(off 
 
 	for _, response := range reader.responses {
 		if totalPos >= off {
-			return response
+			return response[:off]
 		}
 
 		totalPos += int64(len(response))

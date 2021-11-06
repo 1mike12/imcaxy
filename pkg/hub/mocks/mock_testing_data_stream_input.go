@@ -5,12 +5,11 @@ import (
 	"io"
 	"time"
 
-	"github.com/franela/goblin"
 	"github.com/thebartekbanach/imcaxy/pkg/hub"
 )
 
 type MockTestingDataStreamInput struct {
-	g *goblin.G
+	t T
 
 	expectedResponses [][]byte
 	writeLastResponse error
@@ -24,9 +23,9 @@ type MockTestingDataStreamInput struct {
 
 var _ hub.DataStreamInput = (*MockTestingDataStreamInput)(nil)
 
-func NewMockTestingDataStreamInput(g *goblin.G, expectedResponses [][]byte, writeLastResponse error, closeResponse error) MockTestingDataStreamInput {
+func NewMockTestingDataStreamInput(t T, expectedResponses [][]byte, writeLastResponse error, closeResponse error) MockTestingDataStreamInput {
 	return MockTestingDataStreamInput{
-		g,
+		t,
 
 		expectedResponses,
 		writeLastResponse,
@@ -51,7 +50,7 @@ func (stream *MockTestingDataStreamInput) Write(p []byte) (n int, err error) {
 		expectedResponse := stream.expectedResponses[responseIndex]
 
 		if !bytes.Equal(expectedResponse, p) {
-			stream.g.Errorf(
+			stream.t.Errorf(
 				"DataStreamInput Write was called with wrong set of data to write (index: %v), expected %v, got %v",
 				responseIndex, expectedResponse, p,
 			)
@@ -96,7 +95,7 @@ func (stream *MockTestingDataStreamInput) ReadFrom(r io.Reader) (int64, error) {
 func (stream *MockTestingDataStreamInput) Wait() {
 	select {
 	case <-time.After(time.Second):
-		stream.g.Errorf("MockTestingDataStreamInput Wait deadline exceeded")
+		stream.t.Errorf("MockTestingDataStreamInput Wait deadline exceeded")
 	case <-stream.finisher:
 		return
 	}
@@ -108,4 +107,8 @@ func (stream *MockTestingDataStreamInput) SafelyGetDataSegment(segmentIndex int)
 	}
 
 	return stream.DataSegments[segmentIndex]
+}
+
+func (stream *MockTestingDataStreamInput) GetWholeResponse() []byte {
+	return bytes.Join(stream.DataSegments, []byte(""))
 }
