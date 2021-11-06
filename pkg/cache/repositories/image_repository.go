@@ -21,12 +21,6 @@ type CachedImageModel struct {
 	ProcessingParams map[string][]string `json:"processingParams" bson:"processingParams"`
 }
 
-type CachedImagesRepository interface {
-	CreateCachedImageInfo(ctx context.Context, info CachedImageModel) error
-	DeleteCachedImageInfo(ctx context.Context, requestSignature, processorType string) error
-	GetCachedImageInfo(ctx context.Context, requestSignature, processorType string) (CachedImageModel, error)
-}
-
 type cachedImagesRepository struct {
 	conn dbconnections.CacheDBConnection
 }
