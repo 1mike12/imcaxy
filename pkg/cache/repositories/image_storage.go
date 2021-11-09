@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/url"
 
 	"github.com/minio/minio-go/v7"
 	dbconnections "github.com/thebartekbanach/imcaxy/pkg/cache/repositories/connections"
@@ -76,7 +77,7 @@ func (s *cachedImagesStorage) Delete(ctx context.Context, requestSignature, proc
 }
 
 func (s *cachedImagesStorage) makeResourceID(requestSignature, processorType string) string {
-	return requestSignature + "::" + processorType
+	return url.PathEscape(requestSignature) + "::" + url.PathEscape(processorType)
 }
 
 var (
