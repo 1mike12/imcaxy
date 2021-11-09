@@ -4,12 +4,17 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/thebartekbanach/imcaxy/pkg/cache"
 	cacherepositories "github.com/thebartekbanach/imcaxy/pkg/cache/repositories"
+	dbconnections "github.com/thebartekbanach/imcaxy/pkg/cache/repositories/connections"
 	mock_cacherepositories "github.com/thebartekbanach/imcaxy/pkg/cache/repositories/mocks"
+	"github.com/thebartekbanach/imcaxy/pkg/hub"
 	mock_hub "github.com/thebartekbanach/imcaxy/pkg/hub/mocks"
 )
 
@@ -581,4 +586,160 @@ func TestCacheService_InvalidateAllEntriesForURLShouldReturnOnlyRemovedImagesIfE
 	if len(removedImages) != 1 {
 		t.Errorf("Expected to return only removed images, but it returned %v images instead of 1", len(removedImages))
 	}
+}
+
+func loadTestFile(t *testing.T) []byte {
+	file, err := os.Open("./../../test/data/image.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return data
+}
+
+func getTestDataReadStream(t *testing.T) (hub.DataStreamOutput, cacherepositories.CachedImageModel, []byte) {
+	data := loadTestFile(t)
+	output := mock_hub.NewMockTestingDataStreamOutputUsingSingleChunkOfData(t, data, nil, nil)
+	imageInfo := cacherepositories.CachedImageModel{
+		RawRequest:        "/crop?width=500&height=500&url=http://google.com/image.jpg",
+		RequestSignature:  "|/crop|height=500|url=http://google.com/image.jpg|width=500|",
+		ProcessorType:     "imaginary",
+		MimeType:          "image/jpeg",
+		ProcessorEndpoint: "/crop",
+		SourceImageURL:    "http://google.com/image.jpg",
+		ProcessingParams: map[string][]string{
+			"width":  {"500"},
+			"height": {"500"},
+			"url":    {"http://google.com/image.jpg"},
+		},
+		ImageSize: int64(len(data)),
+	}
+	return output, imageInfo, data
+}
+
+func TestCacheServiceIntegration_SavesAndGetsImageCorrectly(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping cacheService integration tests")
+	}
+
+	mongoTestingConnection := dbconnections.NewCacheDBTestingConnection(t)
+	minioTestingConnection := dbconnections.NewMinioBlockStorageTestingConnection(t)
+	imagesCache := cacherepositories.NewCachedImagesRepository(mongoTestingConnection)
+	imagesStorage := cacherepositories.NewCachedImagesStorage(minioTestingConnection)
+	dataStreamOutput, imageInfo, testData := getTestDataReadStream(t)
+	mockDataStreamInput := mock_hub.NewMockTestingDataStreamInput(t, nil, nil, nil)
+
+	cacheService := cache.NewCacheService(imagesCache, imagesStorage)
+
+	if err := cacheService.Save(context.Background(), imageInfo, dataStreamOutput); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cacheService.Get(context.Background(), imageInfo.RequestSignature, imageInfo.ProcessorType, &mockDataStreamInput); err != nil {
+		t.Fatal(err)
+	}
+
+	mockDataStreamInput.Wait()
+
+	if !bytes.Equal(testData, mockDataStreamInput.GetWholeResponse()) {
+		t.Errorf("Expected to get correct data from cache, but data loaded from cache is not equal to original data")
+	}
+}
+
+func TestCacheServiceIntegration_GetReturnsErrorWhenImageIsNotFound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping cacheService integration tests")
+	}
+
+	mongoTestingConnection := dbconnections.NewCacheDBTestingConnection(t)
+	minioTestingConnection := dbconnections.NewMinioBlockStorageTestingConnection(t)
+	imagesCache := cacherepositories.NewCachedImagesRepository(mongoTestingConnection)
+	imagesStorage := cacherepositories.NewCachedImagesStorage(minioTestingConnection)
+	mockDataStreamInput := mock_hub.NewMockTestingDataStreamInput(t, nil, nil, nil)
+
+	cacheService := cache.NewCacheService(imagesCache, imagesStorage)
+
+	if err := cacheService.Get(context.Background(), "unknown-signature", "imaginary", &mockDataStreamInput); err != cache.ErrEntryNotFound {
+		t.Errorf("Expected to get ErrEntryNotFound error, but got: %v", err)
+	}
+}
+
+func TestCacheServiceIntegration_SaveReturnsErrorWhenImageAlreadyExists(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping cacheService integration tests")
+	}
+
+	mongoTestingConnection := dbconnections.NewCacheDBTestingConnection(t)
+	minioTestingConnection := dbconnections.NewMinioBlockStorageTestingConnection(t)
+	imagesCache := cacherepositories.NewCachedImagesRepository(mongoTestingConnection)
+	imagesStorage := cacherepositories.NewCachedImagesStorage(minioTestingConnection)
+	dataStreamOutput, imageInfo, _ := getTestDataReadStream(t)
+
+	cacheService := cache.NewCacheService(imagesCache, imagesStorage)
+	cacheService.Save(context.Background(), imageInfo, dataStreamOutput)
+
+	if err := cacheService.Save(context.Background(), imageInfo, dataStreamOutput); err != cache.ErrEntryAlreadyExists {
+		t.Errorf("Expected to get ErrEntryAlreadyExists error, but got: %v", err)
+	}
+}
+
+func TestCacheServiceIntegration_InvaildateAllEntriesForURLRemovesAllEntriesOfGivenURL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping cacheService integration tests")
+	}
+
+	mongoTestingConnection := dbconnections.NewCacheDBTestingConnection(t)
+	minioTestingConnection := dbconnections.NewMinioBlockStorageTestingConnection(t)
+	imagesCache := cacherepositories.NewCachedImagesRepository(mongoTestingConnection)
+	imagesStorage := cacherepositories.NewCachedImagesStorage(minioTestingConnection)
+
+	cacheService := cache.NewCacheService(imagesCache, imagesStorage)
+
+	signaturesExpectedToBeDeleted := make([]string, 3)
+	for i := 0; i < 3; i++ {
+		dataStreamOutput, imageInfo, _ := getTestDataReadStream(t)
+
+		// We changed the RequestSignature, what means that every signature is unique and
+		// differs from signature returned by getTestDataReadStream function.
+		imageInfo.RequestSignature = fmt.Sprintf("%v-%d", imageInfo.RequestSignature, i+1)
+		signaturesExpectedToBeDeleted[i] = imageInfo.RequestSignature
+
+		// At this point, we have 3 entries in the cache for the same URL
+		// that we will want to be deleted.
+		cacheService.Save(context.Background(), imageInfo, dataStreamOutput)
+	}
+
+	dataStreamOutput, infoOfImageThatWillStay, _ := getTestDataReadStream(t)
+	infoOfImageThatWillStay.SourceImageURL = "http://google.com/image-that-will-stay.jpg"
+	cacheService.Save(context.Background(), infoOfImageThatWillStay, dataStreamOutput)
+
+	invalidatedEntries, err := cacheService.InvalidateAllEntriesForURL(context.Background(), "http://google.com/image.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(invalidatedEntries) != 3 {
+		t.Errorf("Expected to get 3 invalidated entries, but got: %v", invalidatedEntries)
+	}
+
+	for _, invalidatedEntry := range invalidatedEntries {
+		if !containsInvalidatedEntry(signaturesExpectedToBeDeleted, invalidatedEntry) {
+			t.Errorf("Expected cache entry \"%s\" to be deleted", invalidatedEntry.RequestSignature)
+		}
+	}
+}
+
+func containsInvalidatedEntry(signaturesExpectedToBeDeleted []string, invalidatedEntry cacherepositories.CachedImageModel) bool {
+	for _, signature := range signaturesExpectedToBeDeleted {
+		if signature == invalidatedEntry.RequestSignature {
+			return true
+		}
+	}
+	return false
 }
