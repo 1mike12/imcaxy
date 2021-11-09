@@ -2,6 +2,7 @@ package mock_hub
 
 import (
 	"bytes"
+	"io"
 	"time"
 
 	"github.com/thebartekbanach/imcaxy/pkg/hub"
@@ -89,7 +90,11 @@ func (reader *mockTestingDataStreamOutputReader) ReadAt(p []byte, off int64) (n 
 
 	dataSegment := reader.getResponseSegmentAtOffset(off)
 	if dataSegment == nil {
-		return 0, reader.lastReadError
+		if reader.lastReadError != nil {
+			return 0, reader.lastReadError
+		}
+
+		return 0, io.EOF
 	}
 
 	return copy(p, dataSegment), nil
@@ -105,7 +110,7 @@ func (reader *mockTestingDataStreamOutputReader) getResponseSegmentAtOffset(off 
 
 	for _, response := range reader.responses {
 		if totalPos >= off {
-			return response[:off]
+			return response
 		}
 
 		totalPos += int64(len(response))
