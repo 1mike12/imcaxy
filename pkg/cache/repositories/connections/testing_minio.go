@@ -33,11 +33,11 @@ func NewMinioBlockStorageTestingConnection(t *testing.T) *MinioBlockStorageTesti
 }
 
 func (c *MinioBlockStorageTestingConnection) dropTestBucket() {
-	// if err := c.client.RemoveBucketWithOptions(context.Background(), c.config.Bucket, minio.BucketOptions{
-	// 	ForceDelete: true,
-	// }); err != nil {
-	// 	panic("Error when dropping test bucket: " + err.Error())
-	// }
+	if err := c.client.RemoveBucketWithOptions(context.Background(), c.config.Bucket, minio.BucketOptions{
+		ForceDelete: true,
+	}); err != nil {
+		panic("Error when dropping test bucket: " + err.Error())
+	}
 }
 
 func getRandomTestingBucketName() string {
