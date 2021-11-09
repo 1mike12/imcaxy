@@ -141,3 +141,65 @@ func TestCachedImagesRepository_DeletesCachedImage(t *testing.T) {
 		t.Errorf("Cached image was not deleted correctly: %s", err)
 	}
 }
+
+func TestCachedImagesRepository_ReturnsAllCachedImageInfosOfGivenURL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping cachedImagesRepository integration tests")
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// those two image infos differ in width and height of requested crop
+	info1 := CachedImageModel{
+		RawRequest:       "/crop?width=400&height=400&url=http://google.com/image.jpg",
+		RequestSignature: "|/crop|http://google.com/image.jpg|height=400&width=400|",
+
+		ProcessorType:     "imaginary",
+		ProcessorEndpoint: "/crop",
+
+		MimeType:       "image/jpeg",
+		SourceImageURL: "http://google.com/image.jpg",
+		ProcessingParams: map[string][]string{
+			"width":  {"400"},
+			"height": {"400"},
+		},
+	}
+
+	info2 := CachedImageModel{
+		RawRequest:       "/crop?width=500&height=500&url=http://google.com/image.jpg",
+		RequestSignature: "|/crop|http://google.com/image.jpg|height=500&width=500|",
+
+		ProcessorType:     "imaginary",
+		ProcessorEndpoint: "/crop",
+
+		MimeType:       "image/jpeg",
+		SourceImageURL: "http://google.com/image.jpg",
+		ProcessingParams: map[string][]string{
+			"width":  {"500"},
+			"height": {"500"},
+		},
+	}
+
+	conn := dbconnections.NewCacheDBTestingConnection(t)
+	repo := NewCachedImagesRepository(conn)
+	repo.CreateCachedImageInfo(ctx, info1)
+	repo.CreateCachedImageInfo(ctx, info2)
+	infos, err := repo.GetCachedImageInfosOfSource(ctx, "http://google.com/image.jpg")
+
+	if err != nil {
+		t.Errorf("Error getting cached image infos of source image: %s", err)
+	}
+
+	if len(infos) != 2 {
+		t.Errorf("Expected 2 cached image infos of source image, got: %d", len(infos))
+	}
+
+	for _, info := range infos {
+		if reflect.DeepEqual(info, info1) || reflect.DeepEqual(info, info2) {
+			continue
+		}
+
+		t.Errorf("Expected cached image info to be one of the two, got: %v", info)
+	}
+}

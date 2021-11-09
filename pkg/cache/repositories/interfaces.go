@@ -10,6 +10,7 @@ type CachedImagesRepository interface {
 	CreateCachedImageInfo(ctx context.Context, info CachedImageModel) error
 	DeleteCachedImageInfo(ctx context.Context, requestSignature, processorType string) error
 	GetCachedImageInfo(ctx context.Context, requestSignature, processorType string) (CachedImageModel, error)
+	GetCachedImageInfosOfSource(ctx context.Context, sourceImageURL string) ([]CachedImageModel, error)
 }
 
 type CachedImagesStorage interface {

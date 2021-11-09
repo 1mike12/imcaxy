@@ -17,6 +17,7 @@ type CachedImageModel struct {
 	ProcessorEndpoint string `json:"processorEndpoint" bson:"processorEndpoint"`
 
 	MimeType         string              `json:"mimeType" bson:"mimeType"`
+	ImageSize        int64               `json:"imageSize" bson:"imageSize"`
 	SourceImageURL   string              `json:"sourceImageURL" bson:"sourceImageURL"`
 	ProcessingParams map[string][]string `json:"processingParams" bson:"processingParams"`
 }
@@ -72,6 +73,20 @@ func (repo *cachedImagesRepository) GetCachedImageInfo(ctx context.Context, requ
 	}
 
 	return info, nil
+}
+
+func (repo *cachedImagesRepository) GetCachedImageInfosOfSource(ctx context.Context, sourceImageURL string) ([]CachedImageModel, error) {
+	collection := repo.conn.Collection("cachedImages")
+
+	var infos []CachedImageModel
+	filter := bson.M{"sourceImageURL": sourceImageURL}
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	err = cursor.All(ctx, &infos)
+	return infos, err
 }
 
 var (
