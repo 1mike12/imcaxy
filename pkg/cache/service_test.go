@@ -65,7 +65,7 @@ func TestCacheService_GetClosesStreamInputOnErrImageNotFoundError(t *testing.T) 
 	cacheService.Get(context.Background(), "unknown-signature", "imaginary", mockStreamInput)
 }
 
-func TestcacheService_GetClosesStreamInputOnAnyImagesStorageError(t *testing.T) {
+func TestCacheService_GetClosesStreamInputOnAnyImagesStorageError(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockImagesRepo := mock_cacherepositories.NewMockCachedImagesRepository(mockCtrl)
 	mockImagesStorage := mock_cacherepositories.NewMockCachedImagesStorage()
