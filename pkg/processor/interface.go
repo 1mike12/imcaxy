@@ -1,6 +1,10 @@
 package processor
 
-import "github.com/thebartekbanach/imcaxy/pkg/hub"
+import (
+	"context"
+
+	"github.com/thebartekbanach/imcaxy/pkg/hub"
+)
 
 type ParsedRequest struct {
 	Signature         string
@@ -13,6 +17,7 @@ type ProcessingService interface {
 	ParseRequest(requestPath string) (ParsedRequest, error)
 
 	ProcessImage(
+		ctx context.Context,
 		request ParsedRequest,
 		streamInput hub.DataStreamInput,
 	) (

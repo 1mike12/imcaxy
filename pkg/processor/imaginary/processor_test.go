@@ -2,6 +2,7 @@ package imaginaryprocessor
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"strconv"
@@ -151,8 +152,11 @@ func TestImaginaryProcessor(t *testing.T) {
 					g.Assert(req.URL.Path).Equal("/crop")
 				})
 
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
 				proc := Processor{config, requestMaker}
-				contentType, _, _ := proc.ProcessImage(parsedRequest, &inputStream)
+				contentType, _, _ := proc.ProcessImage(ctx, parsedRequest, &inputStream)
 
 				g.Assert(contentType).Equal("image/png")
 			})
@@ -172,8 +176,11 @@ func TestImaginaryProcessor(t *testing.T) {
 				}
 				requestMaker := testReqFunc(200, testData, nil, nil, true, normalResponseSize, noAssertions)
 
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
 				proc := Processor{config, requestMaker}
-				proc.ProcessImage(parsedRequest, &inputStream)
+				proc.ProcessImage(ctx, parsedRequest, &inputStream)
 
 				inputStream.Wait()
 				g.Assert(inputStream.SafelyGetDataSegment(0)).Equal(testData)
@@ -194,8 +201,11 @@ func TestImaginaryProcessor(t *testing.T) {
 				}
 				requestMaker := testReqFunc(200, nil, io.ErrUnexpectedEOF, nil, true, normalResponseSize, noAssertions)
 
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
 				proc := Processor{config, requestMaker}
-				_, _, err := proc.ProcessImage(parsedRequest, &inputStream)
+				_, _, err := proc.ProcessImage(ctx, parsedRequest, &inputStream)
 
 				g.Assert(err).Equal(io.ErrUnexpectedEOF)
 			})
@@ -215,8 +225,11 @@ func TestImaginaryProcessor(t *testing.T) {
 				}
 				requestMaker := testReqFunc(500, testData, nil, nil, true, normalResponseSize, noAssertions)
 
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
 				proc := Processor{config, requestMaker}
-				_, _, err := proc.ProcessImage(parsedRequest, &inputStream)
+				_, _, err := proc.ProcessImage(ctx, parsedRequest, &inputStream)
 
 				g.Assert(err).Equal(ErrResponseStatusNotOK)
 			})
@@ -236,8 +249,11 @@ func TestImaginaryProcessor(t *testing.T) {
 				}
 				requestMaker := testReqFunc(200, testData, nil, nil, false, normalResponseSize, noAssertions)
 
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
 				proc := Processor{config, requestMaker}
-				_, _, err := proc.ProcessImage(parsedRequest, &inputStream)
+				_, _, err := proc.ProcessImage(ctx, parsedRequest, &inputStream)
 
 				g.Assert(err).Equal(ErrUnknownContentType)
 			})
@@ -257,8 +273,11 @@ func TestImaginaryProcessor(t *testing.T) {
 				}
 				requestMaker := testReqFunc(200, testData, nil, nil, true, stringResponseSize(""), noAssertions)
 
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
 				proc := Processor{config, requestMaker}
-				_, _, err := proc.ProcessImage(parsedRequest, &inputStream)
+				_, _, err := proc.ProcessImage(ctx, parsedRequest, &inputStream)
 
 				g.Assert(err).Equal(ErrUnknownContentLength)
 			})
@@ -278,8 +297,11 @@ func TestImaginaryProcessor(t *testing.T) {
 				}
 				requestMaker := testReqFunc(200, testData, nil, nil, true, stringResponseSize("0"), noAssertions)
 
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
 				proc := Processor{config, requestMaker}
-				_, _, err := proc.ProcessImage(parsedRequest, &inputStream)
+				_, _, err := proc.ProcessImage(ctx, parsedRequest, &inputStream)
 
 				g.Assert(err).Equal(ErrUnknownContentLength)
 			})
@@ -299,8 +321,11 @@ func TestImaginaryProcessor(t *testing.T) {
 				}
 				requestMaker := testReqFunc(200, testData, nil, nil, true, stringResponseSize("incorrect"), noAssertions)
 
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
 				proc := Processor{config, requestMaker}
-				_, _, err := proc.ProcessImage(parsedRequest, &inputStream)
+				_, _, err := proc.ProcessImage(ctx, parsedRequest, &inputStream)
 
 				g.Assert(err).Equal(ErrUnknownContentLength)
 			})
@@ -320,8 +345,11 @@ func TestImaginaryProcessor(t *testing.T) {
 				}
 				requestMaker := testReqFunc(200, testData, nil, io.ErrUnexpectedEOF, true, normalResponseSize, noAssertions)
 
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
 				proc := Processor{config, requestMaker}
-				proc.ProcessImage(parsedRequest, &inputStream)
+				proc.ProcessImage(ctx, parsedRequest, &inputStream)
 
 				inputStream.Wait()
 				g.Assert(inputStream.ForwardedError).Equal(io.ErrUnexpectedEOF)

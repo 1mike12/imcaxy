@@ -1,6 +1,7 @@
 package imaginaryprocessor
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/url"
@@ -53,12 +54,13 @@ func (proc *Processor) ParseRequest(requestPath string) (processor.ParsedRequest
 }
 
 func (proc *Processor) ProcessImage(
+	ctx context.Context,
 	request processor.ParsedRequest,
 	streamInput hub.DataStreamInput,
 ) (responseContentType string, responseSize int64, err error) {
 	req := proc.buildRequest(request)
 
-	response, err := proc.makeRequest(req)
+	response, err := proc.makeRequest(req.WithContext(ctx))
 	if err != nil {
 		return
 	}
