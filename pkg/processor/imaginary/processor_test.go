@@ -3,15 +3,21 @@ package imaginaryprocessor
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"testing"
 
 	"github.com/franela/goblin"
 	"github.com/golang/mock/gomock"
+	"github.com/thebartekbanach/imcaxy/pkg/hub"
 	mock_hub "github.com/thebartekbanach/imcaxy/pkg/hub/mocks"
+	datahubstorage "github.com/thebartekbanach/imcaxy/pkg/hub/storage"
 	"github.com/thebartekbanach/imcaxy/pkg/processor"
+	testutils "github.com/thebartekbanach/imcaxy/test/utils"
 )
 
 type httpResponseBody struct {
@@ -356,4 +362,123 @@ func TestImaginaryProcessor(t *testing.T) {
 			})
 		})
 	})
+}
+
+func loadTestFile(t *testing.T, w io.Writer) {
+	file, err := os.Open("./../../../test/data/image.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	io.Copy(w, file)
+}
+
+func getResultFileContents(t *testing.T) []byte {
+	file, err := os.Open("./../../../test/data/processed.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	contents, err := ioutil.ReadAll(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return contents
+}
+
+func TestImaginaryProcessorIntegration_ShouldCorrectlyProcessImage(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping ImaginaryProcessor integration test")
+	}
+
+	testServer := testutils.NewTestHttpServer()
+	testServer.HandleFunc("/image.jpg", func(w http.ResponseWriter, r *http.Request) {
+		loadTestFile(t, w)
+		w.Header().Set("Content-Type", "image/jpeg")
+		r.Body.Close()
+	})
+
+	port := testServer.Start(t)
+	resourceURL := fmt.Sprintf("http://IntegrationTests.Imcaxy.Server:%d/image.jpg", port)
+
+	processor := NewProcessor(Config{ImaginaryServiceURL: "IntegrationTests.Imcaxy.Imaginary:8080"})
+	req, err := processor.ParseRequest("/crop?width=300&height=300&url=" + resourceURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	storage := datahubstorage.NewStorage()
+	datahub := hub.NewDataHub(&storage)
+	go datahub.StartMonitors(ctx)
+
+	outputStream, inputStream, err := datahub.GetOrCreateStream("test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	contentType, size, err := processor.ProcessImage(ctx, req, inputStream)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if contentType != "image/jpeg" {
+		t.Fatalf("expected content type to be image/jpeg, got %s", contentType)
+	}
+
+	data, err := ioutil.ReadAll(outputStream)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if int64(len(data)) != size {
+		t.Fatalf("expected size to be %d, got %d", size, len(data))
+	}
+
+	expectedResult := getResultFileContents(t)
+	if !bytes.Equal(data, expectedResult) {
+		t.Fatalf("data got from ImaginaryProcessor is not equal to expected result |||||||")
+	}
+}
+
+func TestImaginaryProcessorIntegration_ShouldReturnErrorWhenResponseCodeIsNotCorrect(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping ImaginaryProcessor integration test")
+	}
+
+	testServer := testutils.NewTestHttpServer()
+	testServer.HandleFunc("/image.jpg", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+	})
+
+	port := testServer.Start(t)
+	resourceURL := fmt.Sprintf("http://IntegrationTests.Imcaxy.Server:%d/image.jpg", port)
+
+	processor := NewProcessor(Config{ImaginaryServiceURL: "IntegrationTests.Imcaxy.Imaginary:8080"})
+	req, err := processor.ParseRequest("/crop?width=300&height=300&url=" + resourceURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	storage := datahubstorage.NewStorage()
+	datahub := hub.NewDataHub(&storage)
+	go datahub.StartMonitors(ctx)
+
+	_, inputStream, err := datahub.GetOrCreateStream("test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, _, err = processor.ProcessImage(ctx, req, inputStream)
+	if err != ErrResponseStatusNotOK {
+		t.Fatalf("expected error to be ErrResponseStatusNotOK, got %v", err)
+	}
 }
