@@ -107,8 +107,9 @@ func (proc *Processor) buildRequest(request processor.ParsedRequest) *http.Reque
 	req := http.Request{
 		Method: http.MethodGet,
 		URL: &url.URL{
-			Host: proc.config.ImaginaryServiceURL,
-			Path: request.ProcessorEndpoint,
+			Scheme: "http",
+			Host:   proc.config.ImaginaryServiceURL,
+			Path:   request.ProcessorEndpoint,
 		},
 	}
 
