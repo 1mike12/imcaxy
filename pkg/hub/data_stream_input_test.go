@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"testing"
@@ -144,6 +145,63 @@ func TestDataStreamInput(t *testing.T) {
 			_, err := stream.ReadFrom(mockReader)
 
 			g.Assert(err).Equal(io.ErrUnexpectedEOF)
+		})
+
+		g.It("Should not forward io.EOF error when using Close method", func() {
+			mockCtrl := gomock.NewController(g)
+			defer mockCtrl.Finish()
+
+			mockWriter := mock_datahubstorage.NewMockWriter(mockCtrl)
+			mockWriter.EXPECT().Close("test", nil).Return(nil)
+
+			stream := newDataStreamInput("test", mockWriter)
+			stream.Close(io.EOF)
+		})
+
+		g.It("Should return ErrStreamAlreadyClosed if trying to close stream that is already closed", func() {
+			mockCtrl := gomock.NewController(g)
+			defer mockCtrl.Finish()
+
+			mockWriter := mock_datahubstorage.NewMockWriter(mockCtrl)
+			mockWriter.EXPECT().Close("test", nil).Return(nil).Times(1)
+
+			stream := newDataStreamInput("test", mockWriter)
+			stream.Close(nil)
+
+			err := stream.Close(nil)
+
+			g.Assert(err).Equal(ErrStreamAlreadyClosed)
+		})
+
+		g.It("Should return ErrStreamClosedForWriting when trying to write data to closed stream", func() {
+			mockCtrl := gomock.NewController(g)
+			defer mockCtrl.Finish()
+
+			mockWriter := mock_datahubstorage.NewMockWriter(mockCtrl)
+			mockWriter.EXPECT().Close("test", nil).Return(nil)
+
+			stream := newDataStreamInput("test", mockWriter)
+			stream.Close(nil)
+
+			_, err := stream.Write([]byte{0x1, 0x2, 0x3})
+
+			g.Assert(err).Equal(ErrStreamClosedForWriting)
+		})
+
+		g.It("Should return ErrStreamClosedForWriting when trying to use ReadFrom method", func() {
+			mockCtrl := gomock.NewController(g)
+			defer mockCtrl.Finish()
+
+			mockWriter := mock_datahubstorage.NewMockWriter(mockCtrl)
+			mockWriter.EXPECT().Close("test", nil).Return(nil)
+
+			stream := newDataStreamInput("test", mockWriter)
+			stream.Close(nil)
+
+			reader := bytes.NewReader([]byte{0x1, 0x2, 0x3})
+			_, err := stream.ReadFrom(reader)
+
+			g.Assert(err).Equal(ErrStreamClosedForWriting)
 		})
 	})
 }

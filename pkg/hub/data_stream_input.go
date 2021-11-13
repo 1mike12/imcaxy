@@ -9,6 +9,7 @@ import (
 type dataStreamInput struct {
 	streamID string
 	storage  datahubstorage.Writer
+	closed   bool
 }
 
 var _ DataStreamInput = (*dataStreamInput)(nil)
@@ -17,18 +18,36 @@ func newDataStreamInput(streamID string, storage datahubstorage.Writer) dataStre
 	return dataStreamInput{
 		streamID,
 		storage,
+		false,
 	}
 }
 
 func (stream *dataStreamInput) Write(p []byte) (n int, err error) {
+	if stream.closed {
+		return 0, ErrStreamClosedForWriting
+	}
+
 	return stream.storage.Write(stream.streamID, p)
 }
 
 func (stream *dataStreamInput) Close(errorToForward error) error {
+	if stream.closed {
+		return ErrStreamAlreadyClosed
+	}
+	stream.closed = true
+
+	if errorToForward == io.EOF {
+		errorToForward = nil
+	}
+
 	return stream.storage.Close(stream.streamID, errorToForward)
 }
 
 func (stream *dataStreamInput) ReadFrom(r io.Reader) (int64, error) {
+	if stream.closed {
+		return 0, ErrStreamClosedForWriting
+	}
+
 	fullSize := int64(0)
 	for {
 		data := make([]byte, 256)
