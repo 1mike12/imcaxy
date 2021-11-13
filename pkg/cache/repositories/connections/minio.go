@@ -36,7 +36,11 @@ func NewMinioBlockStorageProductionConnection(ctx context.Context, config MinioB
 
 	makeBucketOptions := minio.MakeBucketOptions{Region: config.Location}
 	if err = client.MakeBucket(ctx, config.Bucket, makeBucketOptions); err != nil {
-		return
+		if minio.ToErrorResponse(err).Code != "BucketAlreadyOwnedByYou" {
+			return
+		}
+
+		err = nil
 	}
 
 	conn = MinioBlockStorageProductionConnection{
