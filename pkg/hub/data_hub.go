@@ -2,6 +2,7 @@ package hub
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	datahubstorage "github.com/thebartekbanach/imcaxy/pkg/hub/storage"
@@ -67,3 +68,9 @@ func (hub *dataHub) getStreamOutput(streamID string) (DataStreamOutput, error) {
 	streamOutput := NewDataStreamOutput(streamReader)
 	return &streamOutput, nil
 }
+
+var (
+	ErrStreamAlreadyClosed    = errors.New("stream already closed")
+	ErrStreamClosedForReading = errors.New("stream closed for reading")
+	ErrStreamClosedForWriting = errors.New("stream closed for writing")
+)

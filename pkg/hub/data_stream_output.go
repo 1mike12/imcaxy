@@ -1,7 +1,6 @@
 package hub
 
 import (
-	"errors"
 	"io"
 	"sync"
 
@@ -131,8 +130,3 @@ func (stream *dataStreamOutput) WriteTo(w io.Writer) (n int64, err error) {
 
 	return pos, io.EOF
 }
-
-var (
-	ErrStreamAlreadyClosed    = errors.New("stream already closed")
-	ErrStreamClosedForReading = errors.New("stream closed for reading")
-)
