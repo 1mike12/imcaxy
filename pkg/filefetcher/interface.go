@@ -1,7 +1,11 @@
 package filefetcher
 
-import "github.com/thebartekbanach/imcaxy/pkg/hub"
+import (
+	"context"
+
+	"github.com/thebartekbanach/imcaxy/pkg/hub"
+)
 
 type Fetcher interface {
-	Fetch(url string) (hub.DataStreamOutput, error)
+	Fetch(ctx context.Context, url string, input hub.DataStreamInput) error
 }

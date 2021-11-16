@@ -2,13 +2,11 @@ package filefetcher
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
+	"context"
 	"io"
 	"net/http"
 	"testing"
 
-	"github.com/franela/goblin"
 	"github.com/golang/mock/gomock"
 	mock_hub "github.com/thebartekbanach/imcaxy/pkg/hub/mocks"
 	mock_globals "github.com/thebartekbanach/imcaxy/test/mocks"
@@ -23,7 +21,7 @@ func (body *httpResponseBody) Close() error {
 }
 
 func fetchGetterFuncFactoryWithGetterCallback(reader io.Reader, responseStatusCode int, err error, onGetterCall func()) httpGetFunc {
-	return func(url string) (*http.Response, error) {
+	return func(_ context.Context, url string) (*http.Response, error) {
 		onGetterCall()
 
 		if err != nil {
@@ -53,139 +51,76 @@ func testDataFetchFuncFactory(responseStatusCode int, err error) (httpGetFunc, [
 	return testDataFetchFuncFactoryWithGetterCallback(responseStatusCode, err, func() {})
 }
 
-func TestDataHubFetcher(t *testing.T) {
-	g := goblin.Goblin(t)
+func fetchGetterFuncFactoryWithErrorReturnedByReader(t *testing.T, err error) httpGetFunc {
+	mockCtrl := gomock.NewController(t)
+	mockReader := mock_globals.NewMockReader(mockCtrl)
+	mockReader.EXPECT().Read(gomock.Any()).Return(0, err)
 
-	g.Describe("DataHubFetcher", func() {
-		g.It("Should fetch all of data correctly", func() {
-			fileName := "http://google.com/image.jpg"
-			streamName := fmt.Sprintf(DATA_HUB_FETCHER_STREAM_NAMES_TEMPLATE, fileName)
-			getter, testData := testDataFetchFuncFactory(200, nil)
+	get := fetchGetterFuncFactoryWithGetterCallback(mockReader, 200, nil, func() {})
 
-			mockCtrl := gomock.NewController(g)
-			defer mockCtrl.Finish()
+	return get
+}
 
-			mockDataStreamOutput := mock_hub.NewMockTestingDataStreamOutput(g, [][]byte{testData}, io.EOF, nil)
-			mockDataStreamInput := mock_hub.NewMockTestingDataStreamInput(g, [][]byte{testData}, nil, nil)
-			mockDataHub := mock_hub.NewMockDataHub(mockCtrl)
-			mockDataHub.EXPECT().GetOrCreateStream(streamName).Return(
-				mockDataStreamOutput, &mockDataStreamInput, nil,
-			)
+func TestDataHubFetcher_ShouldPassRequestBodyCorrectlyToDataStreamInput(t *testing.T) {
+	getter, testData := testDataFetchFuncFactory(200, nil)
+	mockStreamInput := mock_hub.NewMockTestingDataStreamInput(t, [][]byte{testData}, nil, nil)
 
-			fetcher := DataHubFetcher{mockDataHub, getter}
-			fetcher.Fetch(fileName)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-			mockDataStreamInput.Wait()
-			g.Assert(mockDataStreamInput.SafelyGetDataSegment(0)).Equal(testData)
-		})
+	fetcher := DataHubFetcher{getter}
+	fetcher.Fetch(ctx, "http://google.com/image.jpg", &mockStreamInput)
 
-		g.It("Should return error returned by http.Get method", func() {
-			fileName := "http://google.com/image.jpg"
-			streamName := fmt.Sprintf(DATA_HUB_FETCHER_STREAM_NAMES_TEMPLATE, fileName)
-			getter, _ := testDataFetchFuncFactory(200, io.ErrUnexpectedEOF)
+	mockStreamInput.Wait()
+}
 
-			mockCtrl := gomock.NewController(g)
-			defer mockCtrl.Finish()
+func TestDataHubFetcher_ShouldReturn404ErrorIf404IsReturnedByRequest(t *testing.T) {
+	getter, _ := testDataFetchFuncFactory(404, nil)
+	mockStreamInput := mock_hub.NewMockTestingDataStreamInput(t, nil, nil, nil)
 
-			mockDataStreamOutput := mock_hub.NewMockTestingDataStreamOutput(g, [][]byte{}, io.EOF, nil)
-			mockDataStreamInput := mock_hub.NewMockTestingDataStreamInput(g, [][]byte{}, nil, nil)
-			mockDataHub := mock_hub.NewMockDataHub(mockCtrl)
-			mockDataHub.EXPECT().GetOrCreateStream(streamName).Return(
-				mockDataStreamOutput, &mockDataStreamInput, nil,
-			)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-			fetcher := DataHubFetcher{mockDataHub, getter}
-			_, err := fetcher.Fetch(fileName)
+	fetcher := DataHubFetcher{getter}
+	err := fetcher.Fetch(ctx, "http://google.com/image.jpg", &mockStreamInput)
 
-			g.Assert(err).Equal(io.ErrUnexpectedEOF)
-		})
+	if err != ErrResponseStatus404 {
+		t.Errorf("Expected fetch error to be %v, got %v", ErrResponseStatus404, err)
+	}
 
-		g.It("Should return error when get returns non-200 status code", func() {
-			fileName := "http://google.com/image.jpg"
-			streamName := fmt.Sprintf(DATA_HUB_FETCHER_STREAM_NAMES_TEMPLATE, fileName)
-			getter, _ := testDataFetchFuncFactory(404, nil)
+	if mockStreamInput.ForwardedError != ErrResponseStatus404 {
+		t.Errorf("Expected stream close frowarded error to be %v, got %v", ErrResponseStatus404, mockStreamInput.ForwardedError)
+	}
+}
 
-			mockCtrl := gomock.NewController(g)
-			defer mockCtrl.Finish()
+func TestDataHubFetcher_ShouldReturnErrorIfErrorReturnedByRequestIsNot200(t *testing.T) {
+	getter, _ := testDataFetchFuncFactory(500, nil)
+	mockStreamInput := mock_hub.NewMockTestingDataStreamInput(t, nil, nil, nil)
 
-			mockDataStreamOutput := mock_hub.NewMockTestingDataStreamOutput(g, [][]byte{}, io.EOF, nil)
-			mockDataStreamInput := mock_hub.NewMockTestingDataStreamInput(g, [][]byte{}, nil, nil)
-			mockDataHub := mock_hub.NewMockDataHub(mockCtrl)
-			mockDataHub.EXPECT().GetOrCreateStream(streamName).Return(
-				mockDataStreamOutput, &mockDataStreamInput, nil,
-			)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-			fetcher := DataHubFetcher{mockDataHub, getter}
-			_, err := fetcher.Fetch(fileName)
+	fetcher := DataHubFetcher{getter}
+	err := fetcher.Fetch(ctx, "http://google.com/image.jpg", &mockStreamInput)
 
-			g.Assert(err).Equal(ErrResponseStatusNotOK)
-		})
+	if err != ErrResponseStatusNotOK {
+		t.Errorf("Expected fetch error to be %v, got %v", ErrResponseStatusNotOK, err)
+	}
+}
 
-		g.It("Should not download file again if file stream already exists", func() {
-			fileName := "http://google.com/image.jpg"
-			streamName := fmt.Sprintf(DATA_HUB_FETCHER_STREAM_NAMES_TEMPLATE, fileName)
-			getter, _ := testDataFetchFuncFactoryWithGetterCallback(200, nil, func() {
-				g.Errorf("Started to download the file but should not")
-			})
+func TestDataHubFetcher_ShouldCloseInputWithErrorReturnedByStreamRead(t *testing.T) {
+	getter := fetchGetterFuncFactoryWithErrorReturnedByReader(t, io.ErrUnexpectedEOF)
+	mockStreamInput := mock_hub.NewMockTestingDataStreamInput(t, nil, nil, nil)
 
-			mockCtrl := gomock.NewController(g)
-			defer mockCtrl.Finish()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-			mockDataStreamOutput := mock_hub.NewMockTestingDataStreamOutput(g, [][]byte{}, io.EOF, nil)
-			mockDataHub := mock_hub.NewMockDataHub(mockCtrl)
-			mockDataHub.EXPECT().GetOrCreateStream(streamName).Return(
-				mockDataStreamOutput, nil, nil,
-			)
+	fetcher := DataHubFetcher{getter}
+	fetcher.Fetch(ctx, "http://google.com/image.jpg", &mockStreamInput)
 
-			fetcher := DataHubFetcher{mockDataHub, getter}
-			output, _ := fetcher.Fetch(fileName)
+	mockStreamInput.Wait()
 
-			g.Assert(output).Equal(mockDataStreamOutput)
-		})
-
-		g.It("Should forward error returned by http.Get response Body to input stream", func() {
-			fileName := "http://google.com/image.jpg"
-			streamName := fmt.Sprintf(DATA_HUB_FETCHER_STREAM_NAMES_TEMPLATE, fileName)
-
-			mockCtrl := gomock.NewController(g)
-			defer mockCtrl.Finish()
-
-			mockReader := mock_globals.NewMockReader(mockCtrl)
-			mockReader.EXPECT().Read(gomock.Any()).Return(0, io.ErrUnexpectedEOF)
-
-			getter := fetchGetterFuncFactoryWithGetterCallback(mockReader, 200, nil, func() {})
-
-			mockDataStreamOutput := mock_hub.NewMockTestingDataStreamOutput(g, [][]byte{}, io.EOF, nil)
-			mockDataStreamInput := mock_hub.NewMockTestingDataStreamInput(g, [][]byte{}, nil, io.ErrUnexpectedEOF)
-			mockDataHub := mock_hub.NewMockDataHub(mockCtrl)
-			mockDataHub.EXPECT().GetOrCreateStream(streamName).Return(
-				mockDataStreamOutput, &mockDataStreamInput, nil,
-			)
-
-			fetcher := DataHubFetcher{mockDataHub, getter}
-			fetcher.Fetch(fileName)
-
-			mockDataStreamInput.Wait()
-		})
-
-		g.It("Should return error returned by DataHub.GetOrCreateStream", func() {
-			fileName := "http://google.com/image.jpg"
-			streamName := fmt.Sprintf(DATA_HUB_FETCHER_STREAM_NAMES_TEMPLATE, fileName)
-			testErr := errors.New("test error")
-			getter, _ := testDataFetchFuncFactory(200, nil)
-
-			mockCtrl := gomock.NewController(g)
-			defer mockCtrl.Finish()
-
-			mockDataHub := mock_hub.NewMockDataHub(mockCtrl)
-			mockDataHub.EXPECT().GetOrCreateStream(streamName).Return(
-				nil, nil, testErr,
-			)
-
-			fetcher := DataHubFetcher{mockDataHub, getter}
-			_, err := fetcher.Fetch(fileName)
-
-			g.Assert(err).Equal(testErr)
-		})
-	})
+	if mockStreamInput.ForwardedError != io.ErrUnexpectedEOF {
+		t.Errorf("Expected stream close frowarded error to be %v, got %v", io.ErrUnexpectedEOF, mockStreamInput.ForwardedError)
+	}
 }

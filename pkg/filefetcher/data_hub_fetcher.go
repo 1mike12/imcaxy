@@ -1,73 +1,63 @@
 package filefetcher
 
 import (
+	"context"
 	"errors"
-	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/thebartekbanach/imcaxy/pkg/hub"
 )
 
-const DATA_HUB_FETCHER_STREAM_NAMES_TEMPLATE = "%s::FILE_FETCHER"
-
-type httpGetFunc func(url string) (resp *http.Response, err error)
+type httpGetFunc func(ctx context.Context, url string) (resp *http.Response, err error)
 
 type DataHubFetcher struct {
-	dataHub hub.DataHub
-	getter  httpGetFunc
+	getter httpGetFunc
 }
 
 var _ Fetcher = (*DataHubFetcher)(nil)
 
-func NewDataHubFetcher(dataHub hub.DataHub) DataHubFetcher {
-	return DataHubFetcher{dataHub, http.Get}
-}
-
-func (fetcher *DataHubFetcher) Fetch(url string) (hub.DataStreamOutput, error) {
-	fileStreamName := fmt.Sprintf(DATA_HUB_FETCHER_STREAM_NAMES_TEMPLATE, url)
-
-	output, input, err := fetcher.dataHub.GetOrCreateStream(fileStreamName)
-	if err != nil {
-		return nil, err
-	}
-
-	if input != nil {
-		if err := fetcher.fetch(url, input); err != nil {
+func NewDataHubFetcher() DataHubFetcher {
+	getFunc := func(ctx context.Context, url string) (resp *http.Response, err error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
 			return nil, err
 		}
+
+		return http.DefaultClient.Do(req)
 	}
 
-	return output, nil
+	return DataHubFetcher{getFunc}
 }
 
-func (fetcher *DataHubFetcher) fetch(url string, input hub.DataStreamInput) error {
-	response, err := fetcher.getter(url)
+func (fetcher *DataHubFetcher) Fetch(ctx context.Context, url string, input hub.DataStreamInput) error {
+	response, err := fetcher.getter(ctx, url)
 	if err != nil {
 		input.Close(err)
 		return err
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode != 200 {
-		input.Close(ErrResponseStatusNotOK)
-		return ErrResponseStatusNotOK
+	err = nil
+	if response.StatusCode == http.StatusNotFound {
+		err = ErrResponseStatus404
+	} else if response.StatusCode != http.StatusOK {
+		err = ErrResponseStatusNotOK
+	}
+
+	if err != nil {
+		input.Close(err)
+		return err
 	}
 
 	go func() {
-		if _, err := input.ReadFrom(response.Body); err != nil {
-			if err == io.EOF {
-				input.Close(nil)
-				return
-			}
-
-			input.Close(err)
-		}
-
-		input.Close(nil)
+		_, err := input.ReadFrom(response.Body)
+		input.Close(err)
 	}()
 
 	return nil
 }
 
-var ErrResponseStatusNotOK = errors.New("response returned non-200 status code")
+var (
+	ErrResponseStatusNotOK = errors.New("response returned non-200 status code")
+	ErrResponseStatus404   = errors.New("response returned 404 status code")
+)
