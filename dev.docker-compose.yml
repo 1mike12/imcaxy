@@ -1,29 +1,17 @@
 version: "3.8"
 
 services:
-  dev-imcaxy-nginx:
-    container_name: Dev.Imcaxy.Nginx
-    image: nginx:1.18.0-alpine
-    ports:
-      - 80:80
-    volumes:
-      - ./config/nginx:/etc/nginx
-    networks:
-      - dev-imcaxy-internal
-    depends_on:
-      - dev-imcaxy-server
-      - dev-imcaxy-minio
-
   dev-imcaxy-server:
     container_name: Dev.Imcaxy.Server
     build:
-      context: ./src
+      context: ./
       dockerfile: ./dockerfile
       target: dev
     env_file: ./config/env/Dev.Imcaxy.Server.env
+    ports:
+      - 80:80
     volumes:
-      - ./src:/go/src/app
-      - ./test/data:/data
+      - ./:/go/src/app
     networks:
       - dev-imcaxy-internal
     depends_on:
