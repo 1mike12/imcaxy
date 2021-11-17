@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 
@@ -39,76 +40,121 @@ func NewProxyService(config ProxyServiceConfig, cache cache.CacheService, datahu
 	}
 }
 
-func (p *proxyService) Handle(ctx context.Context, rawRequestPath, callerOrigin string, responseWriter ProxyResponseWriter) {
+func (p *proxyService) Handle(ctx context.Context, rawRequestPath, callerOrigin string, rw ProxyResponseWriter) {
+	parsedRequest, processorType, processor, err := p.parseRequest(rawRequestPath, callerOrigin, rw)
+	if err != nil {
+		return
+	}
+
+	imageOutput, imageInput, err := p.datahub.GetOrCreateStream(parsedRequest.Signature)
+	if err != nil {
+		log.Printf("failed to get or create stream: %s", err)
+		rw.WriteError(500, "data stream creation error")
+	}
+	defer imageOutput.Close()
+
+	if imageInput == nil {
+		rw.WriteOK(imageOutput)
+		return
+	}
+
+	if success := p.tryToGetImageFromCache(ctx, parsedRequest, processorType, imageInput, imageOutput, rw); success {
+		return
+	}
+
+	p.tryToProcessAndServeImage(ctx, parsedRequest, rawRequestPath, processorType, processor, imageInput, imageOutput, rw)
+}
+
+func (p *proxyService) parseRequest(rawRequestPath string, callerOrigin string, rw ProxyResponseWriter) (
+	parsedRequest processor.ParsedRequest,
+	processorType string,
+	processor processor.ProcessingService,
+	err error,
+) {
 	if !p.isAllowedOrigin(callerOrigin) {
-		responseWriter.WriteError(403, "request origin not allowed")
+		rw.WriteError(403, "request origin not allowed")
+		err = errors.New("request origin not allowed")
 		return
 	}
 
 	processorType, requestPath, err := p.parseRawRequestPath(rawRequestPath)
 	if err != nil {
-		responseWriter.WriteError(400, "bad request")
+		rw.WriteError(400, "bad request")
+		err = errors.New("bad request")
 		return
 	}
 
 	processor, found := p.config.Processors[processorType]
 	if !found {
-		responseWriter.WriteError(400, "unknown processor")
+		rw.WriteError(400, "unknown processor")
+		err = errors.New("unknown processor")
 		return
 	}
 
-	parsedRequest, err := processor.ParseRequest(requestPath)
+	parsedRequest, err = processor.ParseRequest(requestPath)
 	if err != nil {
-		responseWriter.WriteError(400, "request parsing error")
+		rw.WriteError(400, "request parsing error")
+		err = errors.New("request parsing error")
 		return
 	}
 
 	if !p.isAllowedImageSourceDomain(parsedRequest.SourceImageURL) {
-		responseWriter.WriteError(403, "source image domain not allowed")
+		rw.WriteError(403, "source image domain not allowed")
+		err = errors.New("source image domain not allowed")
 		return
 	}
 
-	output, input, err := p.datahub.GetOrCreateStream(parsedRequest.Signature)
-	if err != nil {
-		responseWriter.WriteError(500, "data stream creation error")
-		return
-	}
-	defer output.Close()
+	return
+}
 
-	if input == nil {
-		responseWriter.WriteOK(output)
-		return
-	}
-
-	err = p.cache.Get(ctx, parsedRequest.Signature, processorType, input)
+// returns: get success
+func (p *proxyService) tryToGetImageFromCache(
+	ctx context.Context,
+	parsedRequest processor.ParsedRequest,
+	processorType string,
+	input hub.DataStreamInput,
+	output hub.DataStreamOutput,
+	rw ProxyResponseWriter,
+) bool {
+	// get does not close input stream on get error,
+	// so we can reuse the same stream later
+	err := p.cache.Get(ctx, parsedRequest.Signature, processorType, input)
 	if err != cache.ErrEntryNotFound && err != nil {
 		input.Close(err)
-		responseWriter.WriteError(500, "cache error")
-		return
+		rw.WriteError(500, "cache error")
+		return false
 	}
 
 	if err == nil {
-		responseWriter.WriteOK(output)
-		return
+		rw.WriteOK(output)
+		return true
 	}
 
+	return false
+}
+
+func (p *proxyService) tryToProcessAndServeImage(
+	ctx context.Context,
+	parsedRequest processor.ParsedRequest,
+	rawRequestPath, processorType string,
+	processor processor.ProcessingService,
+	input hub.DataStreamInput,
+	output hub.DataStreamOutput,
+	rw ProxyResponseWriter,
+) error {
+	// process image does not close the input stream on initial fetch error,
+	// only when error occurs when fetches the image from processing service
 	contentType, size, err := processor.ProcessImage(ctx, parsedRequest, input)
 	if err != nil {
-		output, err := p.fetcher.Fetch(parsedRequest.SourceImageURL)
-		if err != nil {
-			responseWriter.WriteError(404, "image not found")
-			return
-		}
-
-		responseWriter.WriteErrorWithFallback(500, "processing service error", output)
-		return
-	}
-
-	clientResponseOutputStream, err := p.datahub.GetStreamOutput(parsedRequest.Signature)
-	if err != nil {
-		input.Close(err)
-		responseWriter.WriteError(500, "datahub error when getting output stream for client response")
-		return
+		return p.writeFallbackImage(
+			ctx,
+			500,
+			"processing error ocurred",
+			parsedRequest,
+			input,
+			output,
+			rw,
+		)
 	}
 
 	imageInfo := cacherepositories.CachedImageModel{
@@ -124,12 +170,45 @@ func (p *proxyService) Handle(ctx context.Context, rawRequestPath, callerOrigin 
 		ProcessingParams: parsedRequest.ProcessingParams,
 	}
 
-	go func() {
-		p.cache.Save(ctx, imageInfo, output)
-		output.Close()
-	}()
+	p.saveImageInCache(ctx, imageInfo)
 
-	responseWriter.WriteOK(clientResponseOutputStream)
+	rw.WriteOK(output)
+	return nil
+}
+
+func (p *proxyService) writeFallbackImage(
+	ctx context.Context,
+	originalCode int,
+	originalMessage string,
+	parsedRequest processor.ParsedRequest,
+	input hub.DataStreamInput,
+	output hub.DataStreamOutput,
+	rw ProxyResponseWriter,
+) error {
+	err := p.fetcher.Fetch(ctx, parsedRequest.SourceImageURL, input)
+	if err != nil {
+		rw.WriteError(404, "image not found")
+		return err
+	}
+
+	rw.WriteErrorWithFallback(originalCode, originalMessage, output)
+	output.Close()
+	return nil
+}
+
+func (p *proxyService) saveImageInCache(ctx context.Context, imageInfo cacherepositories.CachedImageModel) {
+	processedImageOutput, err := p.datahub.GetStreamOutput(imageInfo.RequestSignature)
+	if err != nil {
+		return
+	}
+
+	go func() {
+		defer processedImageOutput.Close()
+
+		if err := p.cache.Save(ctx, imageInfo, processedImageOutput); err != nil {
+			log.Printf("failed to save entry to cache: %s", err)
+		}
+	}()
 }
 
 func (p *proxyService) parseRawRequestPath(rawRequestPath string) (processorType string, requestPath string, err error) {
