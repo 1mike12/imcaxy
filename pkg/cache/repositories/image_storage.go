@@ -3,7 +3,6 @@ package cacherepositories
 import (
 	"context"
 	"errors"
-	"io"
 	"net/url"
 
 	"github.com/minio/minio-go/v7"
@@ -39,28 +38,19 @@ func (s *cachedImagesStorage) Get(ctx context.Context, requestSignature, process
 	resourceID := s.makeResourceID(requestSignature, processorType)
 	reader, err := s.conn.GetObject(ctx, resourceID)
 	if err != nil {
-		if minio.ToErrorResponse(err).Code == "NoSuchKey" {
-			writer.Close(ErrImageNotFound)
-			return ErrImageNotFound
-		}
-
-		writer.Close(err)
-		return err
-	}
-	defer reader.Close()
-
-	_, err = writer.ReadFrom(reader)
-	if err != nil && err != io.EOF {
-		if minio.ToErrorResponse(err).Code == "NoSuchKey" {
-			writer.Close(ErrImageNotFound)
-			return ErrImageNotFound
-		}
-
-		writer.Close(err)
-		return err
+		return s.convertToKnownError(err)
 	}
 
-	writer.Close(nil)
+	if _, err := reader.Stat(); err != nil {
+		return s.convertToKnownError(err)
+	}
+
+	go func() {
+		_, err = writer.ReadFrom(reader)
+		writer.Close(s.convertToKnownError(err))
+		reader.Close()
+	}()
+
 	return nil
 }
 
@@ -75,6 +65,14 @@ func (s *cachedImagesStorage) Delete(ctx context.Context, requestSignature, proc
 	}
 
 	return s.conn.DeleteObject(ctx, resourceID)
+}
+
+func (s *cachedImagesStorage) convertToKnownError(err error) error {
+	if minio.ToErrorResponse(err).Code == "NoSuchKey" {
+		return ErrImageNotFound
+	}
+
+	return err
 }
 
 func (s *cachedImagesStorage) makeResourceID(requestSignature, processorType string) string {
