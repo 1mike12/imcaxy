@@ -20,7 +20,7 @@ services:
       context: ./src
       dockerfile: ./dockerfile
       target: dev
-    env_file: ./config/env/Imcaxy.Server.env
+    env_file: ./config/env/Dev.Imcaxy.Server.env
     volumes:
       - ./src:/go/src/app
       - ./test/data:/data
@@ -34,7 +34,7 @@ services:
   dev-imcaxy-imaginary:
     container_name: Dev.Imcaxy.Imaginary
     image: h2non/imaginary
-    env_file: ./config/env/Imcaxy.Imaginary.env
+    env_file: ./config/env/Dev.Imcaxy.Imaginary.env
     command: -enable-url-source -mount /data
     ports:
       - 8080:8080
@@ -46,7 +46,7 @@ services:
   dev-imcaxy-mongo:
     container_name: Dev.Imcaxy.Mongo
     image: mongo
-    env_file: ./config/env/Imcaxy.Mongo.env
+    env_file: ./config/env/Dev.Imcaxy.Mongo.env
     ports:
       # allow to connect using mongo compass
       - 27017:27017
@@ -59,6 +59,7 @@ services:
   dev-imcaxy-minio:
     container_name: Dev.Imcaxy.Minio
     image: minio/minio
+    env_file: ./config/env/Dev.Imcaxy.Minio.env
     command: server /data --console-address ":9001"
     ports:
       - 9000:9000
