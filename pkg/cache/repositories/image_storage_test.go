@@ -46,6 +46,9 @@ func TestCachedImagesStorage_ShouldCorrectlyUploadImage(t *testing.T) {
 		t.Fatalf("Error ocurred while saving image to block storage: %s", err)
 	}
 
+	// make sure stream output was closed
+	mockDataStreamOutput.Wait()
+
 	err = storage.Get(ctx, "test-signature", "imaginary", &mockDataStreamInput)
 	if err != nil {
 		t.Fatalf("Error ocurred while getting image from block storage: %s", err)

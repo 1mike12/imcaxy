@@ -31,6 +31,7 @@ func (s *cachedImagesStorage) Save(ctx context.Context, requestSignature, proces
 		return ErrImageAlreadyExists
 	}
 
+	defer reader.Close()
 	return s.conn.PutObject(ctx, resourceID, size, mimeType, reader)
 }
 
