@@ -14,7 +14,6 @@ import (
 	"github.com/thebartekbanach/imcaxy/pkg/filefetcher"
 	mock_filefetcher "github.com/thebartekbanach/imcaxy/pkg/filefetcher/mocks"
 	"github.com/thebartekbanach/imcaxy/pkg/hub"
-	mock_hub "github.com/thebartekbanach/imcaxy/pkg/hub/mocks"
 	datahubstorage "github.com/thebartekbanach/imcaxy/pkg/hub/storage"
 	"github.com/thebartekbanach/imcaxy/pkg/processor"
 	mock_processor "github.com/thebartekbanach/imcaxy/pkg/processor/mocks"
@@ -441,7 +440,7 @@ func TestProxyService_AllowsRequestIfRequesterOriginIsAllowedUsingGlobPattern(t 
 }
 
 func TestProxyService_HandlesProcessorErrorByReturningOriginalImageAsFallback(t *testing.T) {
-	proxy, deps, mockCtrl := createTestingProxyService(t, testingProxyServiceCreationConfig{})
+	proxy, deps, _ := createTestingProxyService(t, testingProxyServiceCreationConfig{})
 
 	requestURLWithoutProcessor := "/test?url=http://google.com/image.jpg"
 	requestURL := "/imaginary" + requestURLWithoutProcessor
@@ -456,10 +455,9 @@ func TestProxyService_HandlesProcessorErrorByReturningOriginalImageAsFallback(t 
 	deps.cache.EXPECT().Get(gomock.Any(), parsedRequest.Signature, "imaginary", gomock.Any()).Return(cache.ErrEntryNotFound)
 	deps.config.processors["imaginary"].EXPECT().ProcessImage(gomock.Any(), parsedRequest, gomock.Any()).Return("", int64(0), errors.New("some error"))
 
-	fetchOutputStream := mock_hub.NewMockDataStreamOutput(mockCtrl)
-	deps.fetcher.EXPECT().Fetch(parsedRequest.SourceImageURL).Return(fetchOutputStream, nil)
+	deps.fetcher.EXPECT().Fetch(gomock.Any(), parsedRequest.SourceImageURL, gomock.Any()).Return(nil)
 
-	deps.responseWriter.EXPECT().WriteErrorWithFallback(500, "processing service error", fetchOutputStream)
+	deps.responseWriter.EXPECT().WriteErrorWithFallback(500, "processing error ocurred", gomock.Any())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -483,7 +481,7 @@ func TestProxyService_HandlesProcessorErrorByReturning404IfImageDoesNotExist(t *
 	deps.cache.EXPECT().Get(gomock.Any(), parsedRequest.Signature, "imaginary", gomock.Any()).Return(cache.ErrEntryNotFound)
 	deps.config.processors["imaginary"].EXPECT().ProcessImage(gomock.Any(), parsedRequest, gomock.Any()).Return("", int64(0), errors.New("some error"))
 
-	deps.fetcher.EXPECT().Fetch(parsedRequest.SourceImageURL).Return(nil, filefetcher.ErrResponseStatusNotOK)
+	deps.fetcher.EXPECT().Fetch(gomock.Any(), parsedRequest.SourceImageURL, gomock.Any()).Return(filefetcher.ErrResponseStatus404)
 	deps.responseWriter.EXPECT().WriteError(404, "image not found")
 
 	ctx, cancel := context.WithCancel(context.Background())
