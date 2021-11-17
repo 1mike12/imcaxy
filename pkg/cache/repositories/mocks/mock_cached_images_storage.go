@@ -72,6 +72,7 @@ func (s *MockCachedImagesStorage) Get(ctx context.Context, requestSignature, pro
 	if data, ok := s.images[resourceID]; ok {
 		buff := bytes.NewBuffer(data)
 		_, err := writer.ReadFrom(buff)
+		writer.Close(err)
 		return err
 	}
 
