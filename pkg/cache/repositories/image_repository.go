@@ -37,6 +37,10 @@ func (repo *cachedImagesRepository) CreateCachedImageInfo(ctx context.Context, i
 
 	result := collection.FindOne(ctx, bson.M{"requestSignature": info.RequestSignature, "processorType": info.ProcessorType})
 	if result.Err() != mongo.ErrNoDocuments {
+		if result.Err() != nil {
+			return result.Err()
+		}
+
 		return ErrCachedImageAlreadyExists
 	}
 
