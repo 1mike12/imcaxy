@@ -105,11 +105,6 @@ func TestCachedImagesStorage_ShouldReturnGetErrorIfImageDoesNotExist(t *testing.
 	if err != ErrImageNotFound {
 		t.Fatalf("Error was not returned when trying to get image that does not exist, got %v", err)
 	}
-
-	mockDataStreamInput.Wait()
-	if mockDataStreamInput.ForwardedError != ErrImageNotFound {
-		t.Fatalf("Error was not forwarded when trying to get image that does not exist, got %v", mockDataStreamInput.ForwardedError)
-	}
 }
 
 func TestCachedImagesStorage_ShouldCorrectlyDeleteImage(t *testing.T) {
