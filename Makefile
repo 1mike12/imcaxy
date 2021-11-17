@@ -1,5 +1,20 @@
 .PHONY: test
 
+dev:
+	@echo Starting development environment
+	@docker compose -f dev.docker-compose.yml up dev-imcaxy-imaginary dev-imcaxy-mongo dev-imcaxy-minio --detach --remove-orphans
+	
+	@echo Starting Imcaxy server
+	@docker compose -f dev.docker-compose.yml up dev-imcaxy-server --no-log-prefix
+
+stop-dev:
+	@echo Stopping development environment
+	@docker-compose -f dev.docker-compose.yml down
+
+cleanup-dev:
+	@echo Cleaning up development environment
+	@docker-compose -f dev.docker-compose.yml down --volumes --remove-orphans
+
 test:
 	@echo Running unit tests on local machine
 	@go test -short -timeout 5s ./...
