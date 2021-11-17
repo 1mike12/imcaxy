@@ -18,7 +18,7 @@ import (
 	mock_hub "github.com/thebartekbanach/imcaxy/pkg/hub/mocks"
 )
 
-func TestCacheService_GetCorrectlyGetsInformationFromImagestorage(t *testing.T) {
+func TestCacheService_GetCorrectlyGetsInformationFromImageStorage(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockImagesRepo := mock_cacherepositories.NewMockCachedImagesRepository(mockCtrl)
 	mockImagesStorage := mock_cacherepositories.NewMockCachedImagesStorage()
