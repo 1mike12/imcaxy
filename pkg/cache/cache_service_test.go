@@ -51,13 +51,13 @@ func TestCacheService_GetShouldReturnErrorIfEntryNotFound(t *testing.T) {
 	}
 }
 
-func TestCacheService_GetClosesStreamInputOnErrImageNotFoundError(t *testing.T) {
+func TestCacheService_GetDoesNotCloseStreamInputOnErrImageNotFoundError(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockImagesRepo := mock_cacherepositories.NewMockCachedImagesRepository(mockCtrl)
 	mockImagesStorage := mock_cacherepositories.NewMockCachedImagesStorage()
 	mockStreamInput := mock_hub.NewMockDataStreamInput(mockCtrl)
 
-	mockStreamInput.EXPECT().Close(cache.ErrEntryNotFound).Return(nil)
+	mockStreamInput.EXPECT().Close(gomock.Any()).Times(0)
 
 	cacheService := cache.NewCacheService(mockImagesRepo, mockImagesStorage)
 	// image with signature "unknown-signature" processed by "imaginary" processor
@@ -65,7 +65,7 @@ func TestCacheService_GetClosesStreamInputOnErrImageNotFoundError(t *testing.T) 
 	cacheService.Get(context.Background(), "unknown-signature", "imaginary", mockStreamInput)
 }
 
-func TestCacheService_GetClosesStreamInputOnAnyImagesStorageError(t *testing.T) {
+func TestCacheService_GetClosesStreamDoesNotCloseInputOnAnyImagesStorageError(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockImagesRepo := mock_cacherepositories.NewMockCachedImagesRepository(mockCtrl)
 	mockImagesStorage := mock_cacherepositories.NewMockCachedImagesStorage()
@@ -73,7 +73,7 @@ func TestCacheService_GetClosesStreamInputOnAnyImagesStorageError(t *testing.T) 
 
 	testError := errors.New("some error")
 	mockImagesStorage.ReturnError(testError)
-	mockStreamInput.EXPECT().Close(testError).Return(nil)
+	mockStreamInput.EXPECT().Close(gomock.Any()).Times(0)
 
 	cacheService := cache.NewCacheService(mockImagesRepo, mockImagesStorage)
 	cacheService.Get(context.Background(), "unknown-signature", "imaginary", mockStreamInput)
@@ -109,7 +109,7 @@ func TestCacheService_SaveShouldCorrectlySaveImage(t *testing.T) {
 		t.Errorf("Expected no error, got: %v", err)
 	}
 
-	cacheService.Get(context.Background(), "test-signature", "imaginary", &mockStreamInput)
+	cacheService.Get(context.Background(), cachedImageInfo.RequestSignature, "imaginary", &mockStreamInput)
 	mockStreamInput.Wait()
 }
 
@@ -649,6 +649,10 @@ func TestCacheServiceIntegration_SavesAndGetsImageCorrectly(t *testing.T) {
 
 	if !bytes.Equal(testData, mockDataStreamInput.GetWholeResponse()) {
 		t.Errorf("Expected to get correct data from cache, but data loaded from cache is not equal to original data")
+
+		if len(mockDataStreamInput.GetWholeResponse()) != len(testData) {
+			t.Errorf("Expected to get %v bytes from cache, but got %v bytes instead", len(testData), len(mockDataStreamInput.GetWholeResponse()))
+		}
 	}
 }
 
