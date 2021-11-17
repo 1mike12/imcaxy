@@ -65,6 +65,10 @@ func (stream *MockTestingDataStreamInput) Write(p []byte) (n int, err error) {
 }
 
 func (stream *MockTestingDataStreamInput) Close(errorToForward error) error {
+	if errorToForward == io.EOF {
+		errorToForward = nil
+	}
+
 	stream.ForwardedError = errorToForward
 	if len(stream.finisher) == 0 {
 		stream.finisher <- struct{}{}
