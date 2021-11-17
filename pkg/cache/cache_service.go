@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"errors"
+	"io"
 
 	cacherepositories "github.com/thebartekbanach/imcaxy/pkg/cache/repositories"
 	"github.com/thebartekbanach/imcaxy/pkg/hub"
@@ -24,17 +25,14 @@ func NewCacheService(
 }
 
 func (s *cacheService) Get(ctx context.Context, requestSignature, processorType string, w hub.DataStreamInput) error {
-	if err := s.imagesStorage.Get(ctx, requestSignature, processorType, w); err != nil {
+	if err := s.imagesStorage.Get(ctx, requestSignature, processorType, w); err != nil && err != io.EOF {
 		if err == cacherepositories.ErrImageNotFound {
-			w.Close(ErrEntryNotFound)
 			return ErrEntryNotFound
 		}
 
-		w.Close(err)
 		return err
 	}
 
-	w.Close(nil)
 	return nil
 }
 
