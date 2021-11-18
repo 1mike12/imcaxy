@@ -22,17 +22,17 @@ type ProxyServiceConfig struct {
 	AllowedOrigins []string
 }
 
-type proxyService struct {
+type ProxyServiceImplementation struct {
 	config  ProxyServiceConfig
 	cache   cache.CacheService
 	datahub hub.DataHub
 	fetcher filefetcher.Fetcher
 }
 
-var _ ProxyService = (*proxyService)(nil)
+var _ ProxyService = (*ProxyServiceImplementation)(nil)
 
 func NewProxyService(config ProxyServiceConfig, cache cache.CacheService, datahub hub.DataHub, fetcher filefetcher.Fetcher) ProxyService {
-	return &proxyService{
+	return &ProxyServiceImplementation{
 		config:  config,
 		cache:   cache,
 		datahub: datahub,
@@ -40,7 +40,7 @@ func NewProxyService(config ProxyServiceConfig, cache cache.CacheService, datahu
 	}
 }
 
-func (p *proxyService) Handle(ctx context.Context, rawRequestPath, callerOrigin string, rw ProxyResponseWriter) {
+func (p *ProxyServiceImplementation) Handle(ctx context.Context, rawRequestPath, callerOrigin string, rw ProxyResponseWriter) {
 	parsedRequest, processorType, processor, err := p.parseRequest(rawRequestPath, callerOrigin, rw)
 	if err != nil {
 		return
@@ -65,7 +65,7 @@ func (p *proxyService) Handle(ctx context.Context, rawRequestPath, callerOrigin 
 	p.tryToProcessAndServeImage(ctx, parsedRequest, rawRequestPath, processorType, processor, imageInput, imageOutput, rw)
 }
 
-func (p *proxyService) parseRequest(rawRequestPath string, callerOrigin string, rw ProxyResponseWriter) (
+func (p *ProxyServiceImplementation) parseRequest(rawRequestPath string, callerOrigin string, rw ProxyResponseWriter) (
 	parsedRequest processor.ParsedRequest,
 	processorType string,
 	processor processor.ProcessingService,
@@ -108,7 +108,7 @@ func (p *proxyService) parseRequest(rawRequestPath string, callerOrigin string, 
 }
 
 // returns: get success
-func (p *proxyService) tryToGetImageFromCache(
+func (p *ProxyServiceImplementation) tryToGetImageFromCache(
 	ctx context.Context,
 	parsedRequest processor.ParsedRequest,
 	processorType string,
@@ -120,6 +120,8 @@ func (p *proxyService) tryToGetImageFromCache(
 	// so we can reuse the same stream later
 	err := p.cache.Get(ctx, parsedRequest.Signature, processorType, input)
 	if err != cache.ErrEntryNotFound && err != nil {
+		log.Printf("cache error ocurred: %s", err)
+
 		input.Close(err)
 		rw.WriteError(500, "cache error")
 		return false
@@ -133,7 +135,7 @@ func (p *proxyService) tryToGetImageFromCache(
 	return false
 }
 
-func (p *proxyService) tryToProcessAndServeImage(
+func (p *ProxyServiceImplementation) tryToProcessAndServeImage(
 	ctx context.Context,
 	parsedRequest processor.ParsedRequest,
 	rawRequestPath, processorType string,
@@ -146,6 +148,7 @@ func (p *proxyService) tryToProcessAndServeImage(
 	// only when error occurs when fetches the image from processing service
 	contentType, size, err := processor.ProcessImage(ctx, parsedRequest, input)
 	if err != nil {
+		log.Printf("writing fallback image because: %s", err)
 		return p.writeFallbackImage(
 			ctx,
 			500,
@@ -176,7 +179,7 @@ func (p *proxyService) tryToProcessAndServeImage(
 	return nil
 }
 
-func (p *proxyService) writeFallbackImage(
+func (p *ProxyServiceImplementation) writeFallbackImage(
 	ctx context.Context,
 	originalCode int,
 	originalMessage string,
@@ -196,9 +199,10 @@ func (p *proxyService) writeFallbackImage(
 	return nil
 }
 
-func (p *proxyService) saveImageInCache(ctx context.Context, imageInfo cacherepositories.CachedImageModel) {
+func (p *ProxyServiceImplementation) saveImageInCache(ctx context.Context, imageInfo cacherepositories.CachedImageModel) {
 	processedImageOutput, err := p.datahub.GetStreamOutput(imageInfo.RequestSignature)
 	if err != nil {
+		log.Printf("failed to get stream output to save image in cache: %s", err)
 		return
 	}
 
@@ -211,7 +215,7 @@ func (p *proxyService) saveImageInCache(ctx context.Context, imageInfo cacherepo
 	}()
 }
 
-func (p *proxyService) parseRawRequestPath(rawRequestPath string) (processorType string, requestPath string, err error) {
+func (p *ProxyServiceImplementation) parseRawRequestPath(rawRequestPath string) (processorType string, requestPath string, err error) {
 	url, err := url.Parse(rawRequestPath)
 	if err != nil {
 		return
@@ -228,7 +232,7 @@ func (p *proxyService) parseRawRequestPath(rawRequestPath string) (processorType
 	return
 }
 
-func (p *proxyService) isAllowedOrigin(origin string) bool {
+func (p *ProxyServiceImplementation) isAllowedOrigin(origin string) bool {
 	if len(p.config.AllowedOrigins) == 0 {
 		return true
 	}
@@ -242,7 +246,7 @@ func (p *proxyService) isAllowedOrigin(origin string) bool {
 	return false
 }
 
-func (p *proxyService) isAllowedImageSourceDomain(sourceImageURL string) bool {
+func (p *ProxyServiceImplementation) isAllowedImageSourceDomain(sourceImageURL string) bool {
 	if len(p.config.AllowedDomains) == 0 {
 		return true
 	}
