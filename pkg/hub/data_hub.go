@@ -9,23 +9,30 @@ import (
 )
 
 type dataHub struct {
-	storage datahubstorage.StorageAdapter
-	lock    sync.RWMutex
+	storage         datahubstorage.StorageAdapter
+	lock            sync.RWMutex
+	monitorsStarted bool
 }
 
 var _ DataHub = (*dataHub)(nil)
 
 func NewDataHub(storage datahubstorage.StorageAdapter) DataHub {
-	return &dataHub{storage, sync.RWMutex{}}
+	return &dataHub{storage, sync.RWMutex{}, false}
 }
 
 func (hub *dataHub) StartMonitors(ctx context.Context) {
+	hub.lock.Lock()
+	hub.monitorsStarted = true
+	hub.lock.Unlock()
+
 	hub.storage.StartMonitors(ctx)
 }
 
 func (hub *dataHub) CreateStream(streamID string) (DataStreamInput, error) {
 	hub.lock.Lock()
 	defer hub.lock.Unlock()
+
+	hub.panicIfMonitorsNotStarted()
 
 	return hub.createStream(streamID)
 }
@@ -34,12 +41,16 @@ func (hub *dataHub) GetStreamOutput(streamID string) (DataStreamOutput, error) {
 	hub.lock.RLock()
 	defer hub.lock.RUnlock()
 
+	hub.panicIfMonitorsNotStarted()
+
 	return hub.getStreamOutput(streamID)
 }
 
 func (hub *dataHub) GetOrCreateStream(streamID string) (output DataStreamOutput, input DataStreamInput, err error) {
 	hub.lock.Lock()
 	defer hub.lock.Unlock()
+
+	hub.panicIfMonitorsNotStarted()
 
 	input, _ = hub.createStream(streamID)
 	output, err = hub.getStreamOutput(streamID)
@@ -67,6 +78,12 @@ func (hub *dataHub) getStreamOutput(streamID string) (DataStreamOutput, error) {
 
 	streamOutput := NewDataStreamOutput(streamReader)
 	return &streamOutput, nil
+}
+
+func (hub *dataHub) panicIfMonitorsNotStarted() {
+	if !hub.monitorsStarted {
+		panic("DataHub monitors not started")
+	}
 }
 
 var (
