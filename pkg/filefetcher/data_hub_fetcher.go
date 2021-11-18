@@ -16,7 +16,7 @@ type DataHubFetcher struct {
 
 var _ Fetcher = (*DataHubFetcher)(nil)
 
-func NewDataHubFetcher() DataHubFetcher {
+func NewDataHubFetcher() Fetcher {
 	getFunc := func(ctx context.Context, url string) (resp *http.Response, err error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
@@ -26,7 +26,7 @@ func NewDataHubFetcher() DataHubFetcher {
 		return http.DefaultClient.Do(req)
 	}
 
-	return DataHubFetcher{getFunc}
+	return &DataHubFetcher{getFunc}
 }
 
 func (fetcher *DataHubFetcher) Fetch(ctx context.Context, url string, input hub.DataStreamInput) error {
