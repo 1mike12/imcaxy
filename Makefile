@@ -15,6 +15,10 @@ cleanup-dev:
 	@echo Cleaning up development environment
 	@docker-compose -f dev.docker-compose.yml down --volumes --remove-orphans
 
+build-dev:
+	@echo Building development environment
+	@docker-compose -f dev.docker-compose.yml build
+
 test:
 	@echo Running unit tests on local machine
 	@go test -short -timeout 5s ./...
