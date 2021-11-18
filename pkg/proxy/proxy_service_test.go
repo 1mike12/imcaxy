@@ -47,7 +47,7 @@ func createTestingProxyService(t *testing.T, cfg testingProxyServiceCreationConf
 	fetcher := mock_filefetcher.NewMockFetcher(mockCtrl)
 	responseWriter := mock_proxy.NewMockProxyResponseWriter(mockCtrl)
 	datahubStorage := datahubstorage.NewStorage()
-	datahub := hub.NewDataHub(&datahubStorage)
+	datahub := hub.NewDataHub(datahubStorage)
 
 	ctx, stopDatahubMonitors := context.WithCancel(context.Background())
 	t.Cleanup(stopDatahubMonitors)
@@ -663,7 +663,3 @@ func TestProxyService_ReturnsStreamFromImageIfItIsAlreadyProcessing(t *testing.T
 
 	proxy.Handle(ctx, requestURL, "github.com", deps.responseWriter)
 }
-
-// Integration:
-
-// multiple requests at once should be handled correctly by calling processor only once and returning image twice
