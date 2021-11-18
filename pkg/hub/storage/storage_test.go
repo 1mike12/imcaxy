@@ -57,7 +57,7 @@ func readDataAndSendFeedback(streamID string, reader datahubstorage.StreamReader
 	}
 }
 
-func createReadersExecuteTestAndGetResults(g *G, ctx context.Context, storage *datahubstorage.Storage, streams []string, testExecutor func(streams []string)) []readerExecutionResult {
+func createReadersExecuteTestAndGetResults(g *G, ctx context.Context, storage datahubstorage.StorageAdapter, streams []string, testExecutor func(streams []string)) []readerExecutionResult {
 	feedbacks := make([]readerExecutionFeedback, 0)
 	for _, stream := range streams {
 		feedbackChannel := make(chan readerExecutionFeedbackResult, 1)
@@ -98,12 +98,12 @@ func createReadersExecuteTestAndGetResults(g *G, ctx context.Context, storage *d
 	return results
 }
 
-func newRunningStorage() (context.Context, context.CancelFunc, *datahubstorage.Storage) {
+func newRunningStorage() (context.Context, context.CancelFunc, datahubstorage.StorageAdapter) {
 	ctx, cancel := context.WithCancel(context.Background())
 	storage := datahubstorage.NewStorage()
 	go storage.StartMonitors(ctx)
 
-	return ctx, cancel, &storage
+	return ctx, cancel, storage
 }
 
 func TestStorage(t *testing.T) {

@@ -14,8 +14,8 @@ type Storage struct {
 
 var _ StorageAdapter = (*Storage)(nil)
 
-func NewStorage() Storage {
-	return Storage{
+func NewStorage() StorageAdapter {
+	return &Storage{
 		newReadersList(),
 		newNotificationHub(),
 		newResourceList(),
