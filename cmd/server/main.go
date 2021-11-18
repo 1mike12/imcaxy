@@ -1,22 +1,26 @@
 package main
 
 import (
-	"fmt"
-	"html"
+	"context"
 	"log"
 	"net/http"
 )
 
 func main() {
-	log.Println("Hello! Starting server...")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
+	log.Println("initializing proxy service")
+	proxyService := InitializeProxy(ctx)
+
+	log.Println("registering http handlers")
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+		request := r.URL.Path + "?" + r.URL.RawQuery
+		log.Printf("processing: %s", request)
+		proxyService.Handle(ctx, request, r.Header.Get("Origin"), &proxyResponseWriter{w})
+		r.Body.Close()
 	})
 
-	http.HandleFunc("/hi", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hi")
-	})
-
+	log.Println("listening on port 80")
 	log.Fatal(http.ListenAndServe(":80", nil))
 }
