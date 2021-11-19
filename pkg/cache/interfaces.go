@@ -12,3 +12,8 @@ type CacheService interface {
 	Save(ctx context.Context, imageInfo cacherepositories.CachedImageModel, r hub.DataStreamOutput) error
 	InvalidateAllEntriesForURL(ctx context.Context, sourceImageURL string) ([]cacherepositories.CachedImageModel, error)
 }
+
+type InvalidationService interface {
+	GetLastKnownInvalidation(ctx context.Context, projectName string) (cacherepositories.InvalidationModel, error)
+	Invalidate(ctx context.Context, projectName string, latestCommitHash string, urls []string) (cacherepositories.InvalidationModel, error)
+}
