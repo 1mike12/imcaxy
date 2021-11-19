@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	cacherepositories "github.com/thebartekbanach/imcaxy/pkg/cache/repositories"
@@ -25,6 +27,16 @@ func marshalAndSendInvalidatedEntries(w http.ResponseWriter, statusCode int, ent
 	w.WriteHeader(statusCode)
 }
 
+func getInvalidateEndpointPath() string {
+	securityToken := os.Getenv("IMCAXY_INVALIDATE_SECURITY_TOKEN")
+
+	if securityToken == "" {
+		return "/invalidate"
+	}
+
+	return fmt.Sprintf("/%s/invalidate", securityToken)
+}
+
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -43,7 +55,7 @@ func main() {
 		r.Body.Close()
 	})
 
-	http.HandleFunc("/invalidate", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(getInvalidateEndpointPath(), func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(ctx, time.Minute)
 		defer cancel()
 
