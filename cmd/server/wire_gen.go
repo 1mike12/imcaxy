@@ -21,13 +21,12 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 // Injectors from wire.go:
 
-func InitializeProxy(ctx context.Context) proxy.ProxyService {
-	processor := InitializeImaginaryProcessingService()
-	proxyServiceConfig := InitializeProxyConfig(processor)
+func InitializeCache(ctx context.Context) cache.CacheService {
 	cacheDBConfig := InitializeMongoConnectionConfig()
 	cacheDBConnection := InitializeMongoConnection(ctx, cacheDBConfig)
 	cachedImagesRepository := cacherepositories.NewCachedImagesRepository(cacheDBConnection)
@@ -35,10 +34,16 @@ func InitializeProxy(ctx context.Context) proxy.ProxyService {
 	minioBlockStorageConnection := InitializeMinioConnection(ctx, minioBlockStorageProductionConnectionConfig)
 	cachedImagesStorage := cacherepositories.NewCachedImagesStorage(minioBlockStorageConnection)
 	cacheService := cache.NewCacheService(cachedImagesRepository, cachedImagesStorage)
+	return cacheService
+}
+
+func InitializeProxy(ctx context.Context, cache2 cache.CacheService) proxy.ProxyService {
+	processor := InitializeImaginaryProcessingService()
+	proxyServiceConfig := InitializeProxyConfig(processor)
 	storageAdapter := datahubstorage.NewStorage()
 	dataHub := InitializeDataHub(ctx, storageAdapter)
 	fetcher := filefetcher.NewDataHubFetcher()
-	proxyService := proxy.NewProxyService(proxyServiceConfig, cacheService, dataHub, fetcher)
+	proxyService := proxy.NewProxyService(proxyServiceConfig, cache2, dataHub, fetcher)
 	return proxyService
 }
 
@@ -66,6 +71,9 @@ func InitializeMongoConnectionConfig() dbconnections.CacheDBConfig {
 }
 
 func InitializeMongoConnection(ctx context.Context, mongoConfig dbconnections.CacheDBConfig) dbconnections.CacheDBConnection {
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
 	cacheDbConnection, err := dbconnections.NewCacheDBProductionConnection(ctx, mongoConfig)
 	if err != nil {
 		log.Panicf("Error ocurred when initializing MongoDB connection: %s", err)
@@ -112,6 +120,9 @@ func InitializeMinioConnectionConfig() dbconnections.MinioBlockStorageProduction
 }
 
 func InitializeMinioConnection(ctx context.Context, minioConfig dbconnections.MinioBlockStorageProductionConnectionConfig) dbconnections.MinioBlockStorageConnection {
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
 	minioBlockStorageConnection, err := dbconnections.NewMinioBlockStorageProductionConnection(ctx, minioConfig)
 	if err != nil {
 		log.Panicf("Error ocurred when initializing Minio connection: %s", err)

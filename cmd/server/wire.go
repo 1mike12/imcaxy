@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/google/wire"
 	"github.com/thebartekbanach/imcaxy/pkg/cache"
@@ -146,7 +147,7 @@ func InitializeProxyConfig(imaginaryProcessingService imaginaryprocessor.Process
 	return config
 }
 
-func InitializeProxy(ctx context.Context) proxy.ProxyService {
+func InitializeCache(ctx context.Context) cache.CacheService {
 	wire.Build(
 		InitializeMinioConnectionConfig,
 		InitializeMinioConnection,
@@ -157,7 +158,13 @@ func InitializeProxy(ctx context.Context) proxy.ProxyService {
 		cacherepositories.NewCachedImagesRepository,
 
 		cache.NewCacheService,
+	)
 
+	return &cache.CacheServiceImplementation{}
+}
+
+func InitializeProxy(ctx context.Context, cache cache.CacheService) proxy.ProxyService {
+	wire.Build(
 		datahubstorage.NewStorage,
 		InitializeDataHub,
 
