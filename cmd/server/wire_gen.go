@@ -138,7 +138,7 @@ func InitializeImaginaryProcessingService() imaginaryprocessor.Processor {
 
 func InitializeDataHub(ctx context.Context, storage datahubstorage.StorageAdapter) hub.DataHub {
 	dataHub := hub.NewDataHub(storage)
-	go dataHub.StartMonitors(ctx)
+	dataHub.StartMonitors(ctx)
 	return dataHub
 }
 

@@ -20,8 +20,6 @@ func newRunningDataHubAndStorage(g *G) (DataHub, *mock_datahubstorage.MockStorag
 	}
 
 	mockStorage := mock_datahubstorage.NewMockStorageAdapter(mockCtrl)
-	mockStorage.EXPECT().StartMonitors(gomock.Any())
-
 	hub := NewDataHub(mockStorage)
 	hub.StartMonitors(ctx)
 

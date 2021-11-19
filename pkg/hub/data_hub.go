@@ -25,7 +25,7 @@ func (hub *dataHub) StartMonitors(ctx context.Context) {
 	hub.monitorsStarted = true
 	hub.lock.Unlock()
 
-	hub.storage.StartMonitors(ctx)
+	go hub.storage.StartMonitors(ctx)
 }
 
 func (hub *dataHub) CreateStream(streamID string) (DataStreamInput, error) {

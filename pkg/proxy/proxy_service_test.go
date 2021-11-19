@@ -52,7 +52,7 @@ func createTestingProxyService(t *testing.T, cfg testingProxyServiceCreationConf
 	ctx, stopDatahubMonitors := context.WithCancel(context.Background())
 	t.Cleanup(stopDatahubMonitors)
 
-	go datahub.StartMonitors(ctx)
+	datahub.StartMonitors(ctx)
 
 	if len(cfg.processorMocks) < 1 {
 		cfg.processorMocks = []string{"imaginary"}

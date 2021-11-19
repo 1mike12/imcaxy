@@ -101,7 +101,7 @@ func createReadersExecuteTestAndGetResults(g *G, ctx context.Context, storage da
 func newRunningStorage() (context.Context, context.CancelFunc, datahubstorage.StorageAdapter) {
 	ctx, cancel := context.WithCancel(context.Background())
 	storage := datahubstorage.NewStorage()
-	go storage.StartMonitors(ctx)
+	storage.StartMonitors(ctx)
 
 	return ctx, cancel, storage
 }

@@ -415,7 +415,7 @@ func TestImaginaryProcessorIntegration_ShouldCorrectlyProcessImage(t *testing.T)
 
 	storage := datahubstorage.NewStorage()
 	datahub := hub.NewDataHub(storage)
-	go datahub.StartMonitors(ctx)
+	datahub.StartMonitors(ctx)
 
 	outputStream, inputStream, err := datahub.GetOrCreateStream("test")
 	if err != nil {
@@ -470,7 +470,7 @@ func TestImaginaryProcessorIntegration_ShouldReturnErrorWhenResponseCodeIsNotCor
 
 	storage := datahubstorage.NewStorage()
 	datahub := hub.NewDataHub(storage)
-	go datahub.StartMonitors(ctx)
+	datahub.StartMonitors(ctx)
 
 	_, inputStream, err := datahub.GetOrCreateStream("test")
 	if err != nil {
