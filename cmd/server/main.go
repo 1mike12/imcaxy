@@ -16,15 +16,15 @@ func marshalAndSendInvalidatedEntries(w http.ResponseWriter, statusCode int, ent
 	invalidatedEntriesJSON, err := json.Marshal(entries)
 	if err != nil {
 		log.Printf("error ocurred when marshalling invalidated entries: %s", err)
-		w.Write([]byte("error ocurred when marshalling invalidated entries"))
-		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(statusCode)
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte("error ocurred when marshalling invalidated entries"))
 		return
 	}
 
+	w.WriteHeader(statusCode)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(invalidatedEntriesJSON)
-	w.WriteHeader(statusCode)
 }
 
 func getInvalidateEndpointPath() string {
