@@ -2,6 +2,7 @@ package cacherepositories
 
 import (
 	"context"
+	"time"
 
 	"github.com/thebartekbanach/imcaxy/pkg/hub"
 )
@@ -30,4 +31,20 @@ type CachedImagesStorage interface {
 	Save(ctx context.Context, requestSignature, processorType, mimeType string, size int64, reader hub.DataStreamOutput) error
 	Get(ctx context.Context, requestSignature, processorType string, writer hub.DataStreamInput) error
 	Delete(ctx context.Context, requestSignature, processorType string) error
+}
+
+type InvalidationModel struct {
+	ProjectName string `json:"projectName" bson:"projectName"`
+	CommitHash  string `json:"commitHash" bson:"commitHash"`
+
+	InvalidationDate       time.Time          `json:"invalidationDate" bson:"invalidationDate"`
+	RequestedInvalidations []string           `json:"requestedInvalidations" bson:"requestedInvalidations"`
+	DoneInvalidations      []string           `json:"doneInvalidations" bson:"doneInvalidations"`
+	InvalidatedImages      []CachedImageModel `json:"invalidatedImages" bson:"invalidatedImages"`
+	InvalidationError      *string            `json:"invalidationError" bson:"invalidationError"`
+}
+
+type InvalidationsRepository interface {
+	CreateInvalidation(ctx context.Context, invalidation InvalidationModel) error
+	GetLatestInvalidation(ctx context.Context, projectName string) (InvalidationModel, error)
 }
