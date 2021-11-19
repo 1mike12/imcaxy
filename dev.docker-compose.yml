@@ -23,11 +23,9 @@ services:
     container_name: Dev.Imcaxy.Imaginary
     image: h2non/imaginary
     env_file: ./config/env/Dev.Imcaxy.Imaginary.env
-    command: -enable-url-source -mount /data
+    command: -enable-url-source
     ports:
       - 8080:8080
-    volumes:
-      - ./test/data:/data:ro
     networks:
       - dev-imcaxy-internal
 

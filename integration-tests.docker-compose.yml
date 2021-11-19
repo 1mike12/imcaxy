@@ -21,11 +21,9 @@ services:
     container_name: IntegrationTests.Imcaxy.Imaginary
     image: h2non/imaginary
     env_file: ./config/env/IntegrationTests.Imcaxy.Imaginary.env
-    command: -enable-url-source -mount /data
+    command: -enable-url-source
     ports:
       - 8080:8080
-    volumes:
-      - ./test/data:/data:ro
     networks:
       - integration-tests-imcaxy-internal
 
