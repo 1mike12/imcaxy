@@ -9,19 +9,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type CachedImageModel struct {
-	RawRequest       string `json:"rawRequest" bson:"rawRequest"`
-	RequestSignature string `json:"requestSignature" bson:"requestSignature"`
-
-	ProcessorType     string `json:"processorType" bson:"processorType"`
-	ProcessorEndpoint string `json:"processorEndpoint" bson:"processorEndpoint"`
-
-	MimeType         string              `json:"mimeType" bson:"mimeType"`
-	ImageSize        int64               `json:"imageSize" bson:"imageSize"`
-	SourceImageURL   string              `json:"sourceImageURL" bson:"sourceImageURL"`
-	ProcessingParams map[string][]string `json:"processingParams" bson:"processingParams"`
-}
-
 type cachedImagesRepository struct {
 	conn dbconnections.CacheDBConnection
 }
