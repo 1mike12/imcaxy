@@ -44,6 +44,9 @@ func InitializeMongoConnectionConfig() dbconnections.CacheDBConfig {
 }
 
 func InitializeMongoConnection(ctx context.Context, mongoConfig dbconnections.CacheDBConfig) dbconnections.CacheDBConnection {
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
 	cacheDbConnection, err := dbconnections.NewCacheDBProductionConnection(ctx, mongoConfig)
 	if err != nil {
 		log.Panicf("Error ocurred when initializing MongoDB connection: %s", err)
@@ -90,6 +93,9 @@ func InitializeMinioConnectionConfig() dbconnections.MinioBlockStorageProduction
 }
 
 func InitializeMinioConnection(ctx context.Context, minioConfig dbconnections.MinioBlockStorageProductionConnectionConfig) dbconnections.MinioBlockStorageConnection {
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
 	minioBlockStorageConnection, err := dbconnections.NewMinioBlockStorageProductionConnection(ctx, minioConfig)
 	if err != nil {
 		log.Panicf("Error ocurred when initializing Minio connection: %s", err)
