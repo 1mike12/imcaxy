@@ -31,9 +31,6 @@ services:
     container_name: IntegrationTests.Imcaxy.Mongo
     image: mongo
     env_file: ./config/env/IntegrationTests.Imcaxy.Mongo.env
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=test
-      - MONGO_INITDB_ROOT_PASSWORD=test
     ports:
       # allow to connect using mongo compass
       - 27017:27017
