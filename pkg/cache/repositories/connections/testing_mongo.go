@@ -2,6 +2,7 @@ package dbconnections
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/google/uuid"
@@ -18,7 +19,7 @@ type CacheDBTestingConnection struct {
 var _ CacheDBConnection = (*CacheDBTestingConnection)(nil)
 
 func NewCacheDBTestingConnection(t *testing.T) *CacheDBTestingConnection {
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI("mongodb://test:test@IntegrationTests.Imcaxy.Mongo:27017"))
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(os.Getenv("IMCAXY_MONGO_CONNECTION_STRING")))
 	if err != nil {
 		panic("Cannot connect to mongodb: " + err.Error())
 	}

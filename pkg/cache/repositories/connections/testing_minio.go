@@ -2,6 +2,7 @@ package dbconnections
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/google/uuid"
@@ -65,6 +66,6 @@ func getRandomTestingBucketName() string {
 	panic("Could not generate random bucket name")
 }
 
-const testingServerEndpoint = "IntegrationTests.Imcaxy.Minio:9000"
-const testingServerAccessKey = "minio"
-const testingServerSecretKey = "minio123"
+var testingServerEndpoint = os.Getenv("IMCAXY_MINIO_ENDPOINT")
+var testingServerAccessKey = os.Getenv("IMCAXY_MINIO_ACCESS_KEY")
+var testingServerSecretKey = os.Getenv("IMCAXY_MINIO_SECRET_KEY")
