@@ -9,7 +9,7 @@ import (
 	"github.com/thebartekbanach/imcaxy/pkg/hub"
 )
 
-type cacheService struct {
+type CacheServiceImplementation struct {
 	imagesRepository cacherepositories.CachedImagesRepository
 	imagesStorage    cacherepositories.CachedImagesStorage
 }
@@ -18,13 +18,13 @@ func NewCacheService(
 	imagesRepository cacherepositories.CachedImagesRepository,
 	imagesStorage cacherepositories.CachedImagesStorage,
 ) CacheService {
-	return &cacheService{
+	return &CacheServiceImplementation{
 		imagesRepository,
 		imagesStorage,
 	}
 }
 
-func (s *cacheService) Get(ctx context.Context, requestSignature, processorType string, w hub.DataStreamInput) error {
+func (s *CacheServiceImplementation) Get(ctx context.Context, requestSignature, processorType string, w hub.DataStreamInput) error {
 	if err := s.imagesStorage.Get(ctx, requestSignature, processorType, w); err != nil && err != io.EOF {
 		if err == cacherepositories.ErrImageNotFound {
 			return ErrEntryNotFound
@@ -36,7 +36,7 @@ func (s *cacheService) Get(ctx context.Context, requestSignature, processorType 
 	return nil
 }
 
-func (s *cacheService) Save(ctx context.Context, imageInfo cacherepositories.CachedImageModel, r hub.DataStreamOutput) error {
+func (s *CacheServiceImplementation) Save(ctx context.Context, imageInfo cacherepositories.CachedImageModel, r hub.DataStreamOutput) error {
 	defer r.Close()
 
 	if err := s.imagesRepository.CreateCachedImageInfo(ctx, imageInfo); err != nil {
@@ -56,7 +56,7 @@ func (s *cacheService) Save(ctx context.Context, imageInfo cacherepositories.Cac
 	return nil
 }
 
-func (s *cacheService) InvalidateAllEntriesForURL(ctx context.Context, sourceImageURL string) (removedEntries []cacherepositories.CachedImageModel, err error) {
+func (s *CacheServiceImplementation) InvalidateAllEntriesForURL(ctx context.Context, sourceImageURL string) (removedEntries []cacherepositories.CachedImageModel, err error) {
 	entries, err := s.imagesRepository.GetCachedImageInfosOfSource(ctx, sourceImageURL)
 	if err != nil {
 		return
