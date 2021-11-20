@@ -21,12 +21,15 @@ jobs:
     - name: Build
       run: go build -v -o ./bin/server ./cmd/server
 
+    - name: Prepare .env files
+      run:  cp ./config/env/examples/* ./config/env && cd config/env && sed -i 's/Dev/IntegrationTests/' Imcaxy.Server.env && for filename in *.env; do mv "$filename" "IntegrationTests.$filename"; done;
+
     - name: Start test env
       run: docker compose -f integration-tests.docker-compose.yml up integration-tests-imcaxy-imaginary integration-tests-imcaxy-mongo integration-tests-imcaxy-minio --detach --remove-orphans
 
     - name: Test imcaxy
       run: docker compose -f integration-tests.docker-compose.yml up integration-tests-imcaxy-server --no-log-prefix
       
-    - name: Cleanupt test env
-      run: docker-compose -f integration-tests.docker-compose.yml down --volumes --remove-orphans
+    - name: Cleanup test env
+      run: docker-compose -f integration-tests.docker-compose.yml down --volumes --remove-orphans && rm ./config/env/*.env
       
