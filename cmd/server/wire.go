@@ -163,6 +163,17 @@ func InitializeCache(ctx context.Context) cache.CacheService {
 	return &cache.CacheServiceImplementation{}
 }
 
+func InitializeInvalidator(ctx context.Context, cacheService cache.CacheService) cache.InvalidationService {
+	wire.Build(
+		InitializeMongoConnectionConfig,
+		InitializeMongoConnection,
+		cacherepositories.NewInvalidationsRepository,
+		cache.NewInvalidationService,
+	)
+
+	return &cache.InvalidationServiceImplementation{}
+}
+
 func InitializeProxy(ctx context.Context, cache cache.CacheService) proxy.ProxyService {
 	wire.Build(
 		datahubstorage.NewStorage,

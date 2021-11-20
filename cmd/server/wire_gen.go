@@ -37,6 +37,14 @@ func InitializeCache(ctx context.Context) cache.CacheService {
 	return cacheService
 }
 
+func InitializeInvalidator(ctx context.Context, cacheService cache.CacheService) cache.InvalidationService {
+	cacheDBConfig := InitializeMongoConnectionConfig()
+	cacheDBConnection := InitializeMongoConnection(ctx, cacheDBConfig)
+	invalidationsRepository := cacherepositories.NewInvalidationsRepository(cacheDBConnection)
+	invalidationService := cache.NewInvalidationService(invalidationsRepository, cacheService)
+	return invalidationService
+}
+
 func InitializeProxy(ctx context.Context, cache2 cache.CacheService) proxy.ProxyService {
 	processor := InitializeImaginaryProcessingService()
 	proxyServiceConfig := InitializeProxyConfig(processor)
