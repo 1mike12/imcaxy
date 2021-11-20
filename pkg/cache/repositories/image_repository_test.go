@@ -8,7 +8,7 @@ import (
 	dbconnections "github.com/thebartekbanach/imcaxy/pkg/cache/repositories/connections"
 )
 
-func TestCachedImagesRepository_CreatesCachedImage(t *testing.T) {
+func TestCachedImagesRepositoryIntegration_CreatesCachedImage(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping cachedImagesRepository integration tests")
 	}
@@ -48,7 +48,7 @@ func TestCachedImagesRepository_CreatesCachedImage(t *testing.T) {
 	}
 }
 
-func TestCachedImagesRepository_ReturnsErrorWhenCachedImageAlreadyExists(t *testing.T) {
+func TestCachedImagesRepositoryIntegration_ReturnsErrorWhenCachedImageAlreadyExists(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping cachedImagesRepository integration tests")
 	}
@@ -83,7 +83,7 @@ func TestCachedImagesRepository_ReturnsErrorWhenCachedImageAlreadyExists(t *test
 	}
 }
 
-func TestCachedImagesRepository_ReturnsErrorWhenCachedImageDoesNotExist(t *testing.T) {
+func TestCachedImagesRepositoryIntegration_ReturnsErrorWhenCachedImageDoesNotExist(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping cachedImagesRepository integration tests")
 	}
@@ -99,7 +99,7 @@ func TestCachedImagesRepository_ReturnsErrorWhenCachedImageDoesNotExist(t *testi
 	}
 }
 
-func TestCachedImagesRepository_DeletesCachedImage(t *testing.T) {
+func TestCachedImagesRepositoryIntegration_DeletesCachedImage(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping cachedImagesRepository integration tests")
 	}
@@ -142,7 +142,7 @@ func TestCachedImagesRepository_DeletesCachedImage(t *testing.T) {
 	}
 }
 
-func TestCachedImagesRepository_ReturnsAllCachedImageInfosOfGivenURL(t *testing.T) {
+func TestCachedImagesRepositoryIntegration_ReturnsAllCachedImageInfosOfGivenURL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping cachedImagesRepository integration tests")
 	}

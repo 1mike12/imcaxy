@@ -47,7 +47,7 @@ func createSuccessfullInvalidationModel(projectName, commitHash string, creation
 	return createInvalidationModel(projectName, commitHash, creationTime, invalidatedImages, invalidatedImages)
 }
 
-func TestInvalidationsRepository_CreatesInvalidationCorrectly(t *testing.T) {
+func TestInvalidationsRepositoryIntegration_CreatesInvalidationCorrectly(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping invalidationsRepository integration tests")
 	}
@@ -79,7 +79,7 @@ func TestInvalidationsRepository_CreatesInvalidationCorrectly(t *testing.T) {
 	}
 }
 
-func TestInvalidationsRepository_ReturnsLatestInvalidationInfo(t *testing.T) {
+func TestInvalidationsRepositoryIntegration_ReturnsLatestInvalidationInfo(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping invalidationsRepository integration tests")
 	}
@@ -121,7 +121,7 @@ func TestInvalidationsRepository_ReturnsLatestInvalidationInfo(t *testing.T) {
 	}
 }
 
-func TestInvalidationsRepository_ReturnsErrCommitHashNotAllowedIfCommitHashIsEmpty(t *testing.T) {
+func TestInvalidationsRepositoryIntegration_ReturnsErrCommitHashNotAllowedIfCommitHashIsEmpty(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping invalidationsRepository integration tests")
 	}
@@ -143,7 +143,7 @@ func TestInvalidationsRepository_ReturnsErrCommitHashNotAllowedIfCommitHashIsEmp
 	}
 }
 
-func TestInvalidationsRepository_ReturnsErrProjectNameNotAllowedIfProjectNameIsEmpty(t *testing.T) {
+func TestInvalidationsRepositoryIntegration_ReturnsErrProjectNameNotAllowedIfProjectNameIsEmpty(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping invalidationsRepository integration tests")
 	}
@@ -165,7 +165,7 @@ func TestInvalidationsRepository_ReturnsErrProjectNameNotAllowedIfProjectNameIsE
 	}
 }
 
-func TestInvalidationsRepository_ReturnsErrProjectNameNotAllowedIfTryingToGetLatestInvalidationWithEmptyProjectName(t *testing.T) {
+func TestInvalidationsRepositoryIntegration_ReturnsErrProjectNameNotAllowedIfTryingToGetLatestInvalidationWithEmptyProjectName(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping invalidationsRepository integration tests")
 	}
@@ -182,7 +182,7 @@ func TestInvalidationsRepository_ReturnsErrProjectNameNotAllowedIfTryingToGetLat
 	}
 }
 
-func TestInvalidationsRepository_ReturnsErrProjectNotFoundIfThereIsNoInvalidationsAssociatedToProjectYet(t *testing.T) {
+func TestInvalidationsRepositoryIntegration_ReturnsErrProjectNotFoundIfThereIsNoInvalidationsAssociatedToProjectYet(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping invalidationsRepository integration tests")
 	}

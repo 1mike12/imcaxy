@@ -26,7 +26,7 @@ func loadTestFile(t *testing.T) []byte {
 	return data
 }
 
-func TestCachedImagesStorage_ShouldCorrectlyUploadImage(t *testing.T) {
+func TestCachedImagesStorageIntegration_ShouldCorrectlyUploadImage(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping cachedImagesRepository integration tests")
 	}
@@ -65,7 +65,7 @@ func TestCachedImagesStorage_ShouldCorrectlyUploadImage(t *testing.T) {
 	}
 }
 
-func TestCachedImagesStorage_ShouldReturnSaveErrorWhenTryingToUploadImageThatAlreadyExists(t *testing.T) {
+func TestCachedImagesStorageIntegration_ShouldReturnSaveErrorWhenTryingToUploadImageThatAlreadyExists(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping cachedImagesRepository integration tests")
 	}
@@ -91,7 +91,7 @@ func TestCachedImagesStorage_ShouldReturnSaveErrorWhenTryingToUploadImageThatAlr
 	}
 }
 
-func TestCachedImagesStorage_ShouldReturnGetErrorIfImageDoesNotExist(t *testing.T) {
+func TestCachedImagesStorageIntegration_ShouldReturnGetErrorIfImageDoesNotExist(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping cachedImagesRepository integration tests")
 	}
@@ -110,7 +110,7 @@ func TestCachedImagesStorage_ShouldReturnGetErrorIfImageDoesNotExist(t *testing.
 	}
 }
 
-func TestCachedImagesStorage_ShouldCorrectlyDeleteImage(t *testing.T) {
+func TestCachedImagesStorageIntegration_ShouldCorrectlyDeleteImage(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping cachedImagesRepository integration tests")
 	}
@@ -155,7 +155,7 @@ func TestCachedImagesStorage_ShouldCorrectlyDeleteImage(t *testing.T) {
 	}
 }
 
-func TestCachedImagesStorage_ShouldReturnDeleteErrorIfImageDoesNotExist(t *testing.T) {
+func TestCachedImagesStorageIntegration_ShouldReturnDeleteErrorIfImageDoesNotExist(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping cachedImagesRepository integration tests")
 	}
