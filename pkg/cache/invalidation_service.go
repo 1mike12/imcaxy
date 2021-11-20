@@ -7,18 +7,18 @@ import (
 	cacherepositories "github.com/thebartekbanach/imcaxy/pkg/cache/repositories"
 )
 
-type invalidationService struct {
+type InvalidationServiceImplementation struct {
 	invalidationsRepository cacherepositories.InvalidationsRepository
 	cacheService            CacheService
 }
 
-var _ InvalidationService = (*invalidationService)(nil)
+var _ InvalidationService = (*InvalidationServiceImplementation)(nil)
 
 func NewInvalidationService(invalidationsRepository cacherepositories.InvalidationsRepository, cacheService CacheService) InvalidationService {
-	return &invalidationService{invalidationsRepository, cacheService}
+	return &InvalidationServiceImplementation{invalidationsRepository, cacheService}
 }
 
-func (s *invalidationService) GetLastKnownInvalidation(ctx context.Context, projectName string) (cacherepositories.InvalidationModel, error) {
+func (s *InvalidationServiceImplementation) GetLastKnownInvalidation(ctx context.Context, projectName string) (cacherepositories.InvalidationModel, error) {
 	if projectName == "" {
 		return cacherepositories.InvalidationModel{}, cacherepositories.ErrProjectNameNotAllowed
 	}
@@ -26,7 +26,7 @@ func (s *invalidationService) GetLastKnownInvalidation(ctx context.Context, proj
 	return s.invalidationsRepository.GetLatestInvalidation(ctx, projectName)
 }
 
-func (s *invalidationService) Invalidate(ctx context.Context, projectName, latestCommitHash string, urls []string) (cacherepositories.InvalidationModel, error) {
+func (s *InvalidationServiceImplementation) Invalidate(ctx context.Context, projectName, latestCommitHash string, urls []string) (cacherepositories.InvalidationModel, error) {
 	if projectName == "" {
 		return cacherepositories.InvalidationModel{}, cacherepositories.ErrProjectNameNotAllowed
 	}
