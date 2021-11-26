@@ -1,5 +1,9 @@
 .PHONY: test
 
+build:
+	@echo Building executable file
+	@cd ./cmd/server && go build -o ../../bin/server . && cd ../..
+
 dev:
 	@echo Starting development environment
 	@docker compose -f dev.docker-compose.yml up dev-imcaxy-imaginary dev-imcaxy-mongo dev-imcaxy-minio --detach --remove-orphans
