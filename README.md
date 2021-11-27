@@ -114,6 +114,13 @@ Environment variables:
 
 You wll need `make`, `docker`, `docker compose` and `go` with version at least `1.17`.
 
+## Setup
+
+1. Go to `./config/env/examples` directory and copy twice all files to `./config/env` directory with name `Dev.` and `IntegrationTests.` prefixes.
+2. Do not change files with `Dev.` prefixes, they are ready to run.
+3. Go to all files with `IntegrationTests.` prefixes and replace `Dev.` string with `IntegrationTests.` string.
+4. Your development environment is ready.
+
 ## Makefile scripts
 
 There are available few useful `make` scripts:
